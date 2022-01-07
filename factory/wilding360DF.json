@@ -1,0 +1,9 @@
+{
+	"name": "wilding360DF",
+	"location": "eastus",
+	"identity": {
+		"type": "SystemAssigned",
+		"principalId": "424ee156-bafa-4c12-aefe-75e94fa2e36a",
+		"tenantId": "189de737-c93a-4f5a-8b68-6f4ca9941912"
+	}
+}
