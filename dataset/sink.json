@@ -1,5 +1,5 @@
 {
-	"name": "CityStateCountry",
+	"name": "sink",
 	"properties": {
 		"linkedServiceName": {
 			"referenceName": "wilding360datalake",
@@ -10,28 +10,22 @@
 		"typeProperties": {
 			"location": {
 				"type": "AzureBlobFSLocation",
-				"fileName": "CityStateCountry.csv",
 				"fileSystem": "raw"
 			},
 			"columnDelimiter": ",",
 			"escapeChar": "\\",
-			"firstRowAsHeader": true,
 			"quoteChar": "\""
 		},
 		"schema": [
 			{
-				"name": "city",
 				"type": "String"
 			},
 			{
-				"name": "state",
 				"type": "String"
 			},
 			{
-				"name": "country",
 				"type": "String"
 			}
 		]
-	},
-	"type": "Microsoft.DataFactory/factories/datasets"
+	}
 }
