@@ -1,0 +1,9 @@
+{
+	"name": "wilding360ADF",
+	"location": "westus3",
+	"identity": {
+		"type": "SystemAssigned",
+		"principalId": "f4be9f3f-fea7-4889-a2a5-f39360ffcf4c",
+		"tenantId": "189de737-c93a-4f5a-8b68-6f4ca9941912"
+	}
+}

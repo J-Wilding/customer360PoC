@@ -1,0 +1,64 @@
+{
+	"name": "SRS",
+	"properties": {
+		"linkedServiceName": {
+			"referenceName": "customer360wilding",
+			"type": "LinkedServiceReference"
+		},
+		"folder": {
+			"name": "Raw"
+		},
+		"annotations": [],
+		"type": "DelimitedText",
+		"typeProperties": {
+			"location": {
+				"type": "AzureBlobFSLocation",
+				"fileName": "srs.csv",
+				"fileSystem": "customer-360-data-in"
+			},
+			"columnDelimiter": ",",
+			"escapeChar": "\\",
+			"firstRowAsHeader": true,
+			"quoteChar": "\""
+		},
+		"schema": [
+			{
+				"name": "sr_id",
+				"type": "String"
+			},
+			{
+				"name": "customer_id",
+				"type": "String"
+			},
+			{
+				"name": "product_id",
+				"type": "String"
+			},
+			{
+				"name": "sr_description",
+				"type": "String"
+			},
+			{
+				"name": "sr_open_date",
+				"type": "String"
+			},
+			{
+				"name": "sr_close_date",
+				"type": "String"
+			},
+			{
+				"name": "sr_type",
+				"type": "String"
+			},
+			{
+				"name": "channel",
+				"type": "String"
+			},
+			{
+				"name": "sr_cust_feedback",
+				"type": "String"
+			}
+		]
+	},
+	"type": "Microsoft.DataFactory/factories/datasets"
+}

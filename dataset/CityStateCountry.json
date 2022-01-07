@@ -1,0 +1,37 @@
+{
+	"name": "CityStateCountry",
+	"properties": {
+		"linkedServiceName": {
+			"referenceName": "customer360wilding",
+			"type": "LinkedServiceReference"
+		},
+		"annotations": [],
+		"type": "DelimitedText",
+		"typeProperties": {
+			"location": {
+				"type": "AzureBlobFSLocation",
+				"fileName": "part-00000-tid-800063800381230670-60289f80-daa3-4036-aaff-0ddfaabbaa52-74-1-c000.csv",
+				"fileSystem": "customer360-cleaned"
+			},
+			"columnDelimiter": ",",
+			"escapeChar": "\\",
+			"firstRowAsHeader": true,
+			"quoteChar": "\""
+		},
+		"schema": [
+			{
+				"name": "city",
+				"type": "String"
+			},
+			{
+				"name": "state",
+				"type": "String"
+			},
+			{
+				"name": "country",
+				"type": "String"
+			}
+		]
+	},
+	"type": "Microsoft.DataFactory/factories/datasets"
+}

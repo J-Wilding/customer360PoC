@@ -1,0 +1,80 @@
+{
+	"name": "Addresses",
+	"properties": {
+		"linkedServiceName": {
+			"referenceName": "customer360wilding",
+			"type": "LinkedServiceReference"
+		},
+		"folder": {
+			"name": "Raw"
+		},
+		"annotations": [],
+		"type": "DelimitedText",
+		"typeProperties": {
+			"location": {
+				"type": "AzureBlobFSLocation",
+				"fileName": "address.csv",
+				"fileSystem": "customer-360-data-in"
+			},
+			"columnDelimiter": ",",
+			"escapeChar": "\\",
+			"firstRowAsHeader": true,
+			"quoteChar": "\""
+		},
+		"schema": [
+			{
+				"name": "address_id",
+				"type": "String"
+			},
+			{
+				"name": "address_type",
+				"type": "String"
+			},
+			{
+				"name": "address1",
+				"type": "String"
+			},
+			{
+				"name": "address2",
+				"type": "String"
+			},
+			{
+				"name": "address3",
+				"type": "String"
+			},
+			{
+				"name": "city",
+				"type": "String"
+			},
+			{
+				"name": "state",
+				"type": "String"
+			},
+			{
+				"name": "country",
+				"type": "String"
+			},
+			{
+				"name": "zipcode",
+				"type": "String"
+			},
+			{
+				"name": "phone",
+				"type": "String"
+			},
+			{
+				"name": "email",
+				"type": "String"
+			},
+			{
+				"name": "Fax",
+				"type": "String"
+			},
+			{
+				"name": "customer_id",
+				"type": "String"
+			}
+		]
+	},
+	"type": "Microsoft.DataFactory/factories/datasets"
+}

@@ -1,0 +1,39 @@
+{
+	"name": "Addresses_clean",
+	"properties": {
+		"linkedServiceName": {
+			"referenceName": "customer360wilding",
+			"type": "LinkedServiceReference"
+		},
+		"folder": {
+			"name": "Clean"
+		},
+		"annotations": [],
+		"type": "DelimitedText",
+		"typeProperties": {
+			"location": {
+				"type": "AzureBlobFSLocation",
+				"fileSystem": "customer360-cleaned"
+			},
+			"columnDelimiter": ",",
+			"escapeChar": "\\",
+			"firstRowAsHeader": true,
+			"quoteChar": "\""
+		},
+		"schema": [
+			{
+				"name": "city",
+				"type": "String"
+			},
+			{
+				"name": "state",
+				"type": "String"
+			},
+			{
+				"name": "country",
+				"type": "String"
+			}
+		]
+	},
+	"type": "Microsoft.DataFactory/factories/datasets"
+}
