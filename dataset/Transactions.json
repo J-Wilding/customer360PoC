@@ -2,7 +2,7 @@
 	"name": "Transactions",
 	"properties": {
 		"linkedServiceName": {
-			"referenceName": "customer360wilding",
+			"referenceName": "wilding360datalake",
 			"type": "LinkedServiceReference"
 		},
 		"folder": {
@@ -13,8 +13,8 @@
 		"typeProperties": {
 			"location": {
 				"type": "AzureBlobFSLocation",
-				"fileName": "transactions.csv",
-				"fileSystem": "customer-360-data-in"
+				"fileName": "transactions.txt",
+				"fileSystem": "raw"
 			},
 			"columnDelimiter": ",",
 			"escapeChar": "\\",

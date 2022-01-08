@@ -43,7 +43,7 @@
 				},
 				{
 					"dataset": {
-						"referenceName": "addressError",
+						"referenceName": "Errors",
 						"type": "DatasetReference"
 					},
 					"name": "sink2"

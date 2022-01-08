@@ -1,8 +1,8 @@
 {
-	"name": "addressError",
+	"name": "Errors",
 	"properties": {
 		"linkedServiceName": {
-			"referenceName": "customer360wilding",
+			"referenceName": "wilding360datalake",
 			"type": "LinkedServiceReference"
 		},
 		"annotations": [],
@@ -10,7 +10,7 @@
 		"typeProperties": {
 			"location": {
 				"type": "AzureBlobFSLocation",
-				"fileSystem": "customer360-cleaned"
+				"fileSystem": "errors"
 			},
 			"columnDelimiter": ",",
 			"escapeChar": "\\",
