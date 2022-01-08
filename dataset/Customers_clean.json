@@ -2,7 +2,7 @@
 	"name": "Customers_clean",
 	"properties": {
 		"linkedServiceName": {
-			"referenceName": "customer360wilding",
+			"referenceName": "wilding360datalake",
 			"type": "LinkedServiceReference"
 		},
 		"folder": {
@@ -13,7 +13,7 @@
 		"typeProperties": {
 			"location": {
 				"type": "AzureBlobFSLocation",
-				"fileSystem": "customer360-cleaned"
+				"fileSystem": "clean"
 			},
 			"columnDelimiter": ",",
 			"escapeChar": "\\",
