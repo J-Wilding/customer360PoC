@@ -11,13 +11,13 @@
 			"type": "secureString",
 			"metadata": "Secure string for 'accessToken' of 'wilding360PoC'"
 		},
-		"customer360wilding_accountKey": {
+		"wilding360datalake_accountKey": {
 			"type": "secureString",
-			"metadata": "Secure string for 'accountKey' of 'customer360wilding'"
+			"metadata": "Secure string for 'accountKey' of 'wilding360datalake'"
 		},
-		"customer360wilding_properties_typeProperties_url": {
+		"wilding360datalake_properties_typeProperties_url": {
 			"type": "string",
-			"defaultValue": "https://customer360wilding.dfs.core.windows.net"
+			"defaultValue": "https://wilding360datalake.dfs.core.windows.net"
 		},
 		"containerUri": {
 			"type": "string",
@@ -49,11 +49,11 @@
 					"wilding360PoC_accessToken": {
 						"value": "[parameters('wilding360PoC_accessToken')]"
 					},
-					"customer360wilding_accountKey": {
-						"value": "[parameters('customer360wilding_accountKey')]"
+					"wilding360datalake_accountKey": {
+						"value": "[parameters('wilding360datalake_accountKey')]"
 					},
-					"customer360wilding_properties_typeProperties_url": {
-						"value": "[parameters('customer360wilding_properties_typeProperties_url')]"
+					"wilding360datalake_properties_typeProperties_url": {
+						"value": "[parameters('wilding360datalake_properties_typeProperties_url')]"
 					}
 				}
 			},
