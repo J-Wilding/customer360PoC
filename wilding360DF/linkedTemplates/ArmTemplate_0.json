@@ -60,6 +60,26 @@
 			"dependsOn": []
 		},
 		{
+			"name": "[concat(parameters('factoryName'), '/integrationRuntime1')]",
+			"type": "Microsoft.DataFactory/factories/integrationRuntimes",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"type": "Managed",
+				"typeProperties": {
+					"computeProperties": {
+						"location": "East US",
+						"dataFlowProperties": {
+							"computeType": "General",
+							"coreCount": 8,
+							"timeToLive": 10,
+							"cleanup": false
+						}
+					}
+				}
+			},
+			"dependsOn": []
+		},
+		{
 			"name": "[concat(parameters('factoryName'), '/Addresses')]",
 			"type": "Microsoft.DataFactory/factories/datasets",
 			"apiVersion": "2018-06-01",
@@ -76,7 +96,7 @@
 				"typeProperties": {
 					"location": {
 						"type": "AzureBlobFSLocation",
-						"fileName": "address.txt",
+						"fileName": "address.csv",
 						"fileSystem": "raw"
 					},
 					"columnDelimiter": ",",
@@ -244,7 +264,7 @@
 				"typeProperties": {
 					"location": {
 						"type": "AzureBlobFSLocation",
-						"fileName": "customer.txt",
+						"fileName": "customer.csv",
 						"fileSystem": "raw"
 					},
 					"columnDelimiter": ",",
@@ -395,17 +415,7 @@
 					"firstRowAsHeader": false,
 					"quoteChar": "\""
 				},
-				"schema": [
-					{
-						"type": "String"
-					},
-					{
-						"type": "String"
-					},
-					{
-						"type": "String"
-					}
-				]
+				"schema": []
 			},
 			"dependsOn": [
 				"[concat(variables('factoryId'), '/linkedServices/wilding360datalake')]"
@@ -428,7 +438,7 @@
 				"typeProperties": {
 					"location": {
 						"type": "AzureBlobFSLocation",
-						"fileName": "products.txt",
+						"fileName": "products.csv",
 						"fileSystem": "raw"
 					},
 					"columnDelimiter": ",",
@@ -520,7 +530,7 @@
 				"typeProperties": {
 					"location": {
 						"type": "AzureBlobFSLocation",
-						"fileName": "srs.txt",
+						"fileName": "srs.csv",
 						"fileSystem": "raw"
 					},
 					"columnDelimiter": ",",
@@ -588,7 +598,7 @@
 				"typeProperties": {
 					"location": {
 						"type": "AzureBlobFSLocation",
-						"fileName": "transactions.txt",
+						"fileName": "transactions.csv",
 						"fileSystem": "raw"
 					},
 					"columnDelimiter": ",",
@@ -757,9 +767,6 @@
 							"description": "address1, 2, 3 if NULL -> N/A"
 						},
 						{
-							"name": "SelectAddresses"
-						},
-						{
 							"name": "customerIDs"
 						},
 						{
@@ -773,9 +780,15 @@
 						},
 						{
 							"name": "Filter1"
+						},
+						{
+							"name": "Exists1"
+						},
+						{
+							"name": "Exists2"
 						}
 					],
-					"script": "source(output(\n\t\taddress_id as long,\n\t\taddress_type as string,\n\t\taddress1 as string,\n\t\taddress2 as string,\n\t\taddress3 as string,\n\t\tcity as string,\n\t\tstate as string,\n\t\tcountry as string,\n\t\tzipcode as string,\n\t\tphone as string,\n\t\temail as string,\n\t\tFax as string,\n\t\tcustomer_id as long\n\t),\n\tallowSchemaDrift: true,\n\tvalidateSchema: false,\n\tignoreNoFilesFound: false) ~> Addresses\nsource(output(\n\t\tcity as string,\n\t\tstate as string,\n\t\tcountry as string\n\t),\n\tallowSchemaDrift: false,\n\tvalidateSchema: false,\n\tignoreNoFilesFound: false) ~> CityStateCountry\nsource(output(\n\t\tcustomer_id as long,\n\t\tsource_id as string,\n\t\tfirst_name as string,\n\t\tmiddle_name as string,\n\t\tlast_name as string,\n\t\tdob as date,\n\t\tgender as string,\n\t\tnationality as string,\n\t\tmarital_status as string,\n\t\toccupation as string,\n\t\tavg_family_size as integer,\n\t\tincome_level as string,\n\t\tdate_onboarded as date,\n\t\tcreated_date as date,\n\t\tupdated_date as date,\n\t\teffective_start_date as date,\n\t\teffective_end_date as date,\n\t\tIdentifier_type as string,\n\t\tidentifier as string\n\t),\n\tallowSchemaDrift: true,\n\tvalidateSchema: false,\n\tignoreNoFilesFound: false,\n\tdateFormats: ['MM/dd/yyyy'],\n\ttimestampFormats: ['MM/dd/yyyy HH:mm:ss']) ~> Customers\nsource(output(\n\t\tproduct_id as long,\n\t\tproduct_name as string,\n\t\tproduct_type as string,\n\t\tproduct_description as string,\n\t\tissue_date as date,\n\t\tvalid_till_date as date,\n\t\taccount_status as string,\n\t\tcredit_card_limit as long,\n\t\tinterest_rate as double,\n\t\ttenure as long,\n\t\tservice_charges as string,\n\t\tcustomer_id as long,\n\t\tfd_principal_amount as long,\n\t\tloan_collateral_value as long,\n\t\tloan_amount as long\n\t),\n\tallowSchemaDrift: true,\n\tvalidateSchema: false,\n\tignoreNoFilesFound: false,\n\tdateFormats: ['yyyy/MM/dd']) ~> Products\nFillNullAddressWithNA, CityStateCountry, customerIDs assert(expectTrue(!isNull(address_id), false, 'addressIdNotNull', null, 'Address Id is null'),\n\texpectTrue(lower(address_type) == 'residence' || lower(address_type) == 'business', false, 'addressTypeValid', null, \"Address is not residence or business\"),\n\texpectExists(Addresses@city == CityStateCountry@city, false, 'cityExists', null, Addresses@city + ' does not exist in citystatecountry table'),\n\texpectExists(Addresses@state == CityStateCountry@state, false, 'stateExists', null, Addresses@city + ' does not exist in citystatecountry table'),\n\texpectExists(Addresses@country == CityStateCountry@country, false, 'countryExists', null, Addresses@country + ' does not exist in citystatecountry table'),\n\texpectTrue(address1 != \"\", false, 'address1NotBlank', null, 'Address1 is blank'),\n\texpectTrue(address2 != \"\", false, 'address2NotBlank', null, 'Address2 is blank'),\n\texpectTrue(address3 != \"\", false, 'address3NotBlank', null, 'Address3 is blank'),\n\texpectTrue(isInteger(zipcode), false, 'zipcodeNumeric', null, \"Zipcode is not numeric\"),\n\texpectTrue(length(toString(phone)) == 11, false, 'phoneNumberNot11digits', null, toString(phone) + \" Invalid Phone number length\"),\n\texpectTrue(regexMatch(email, `^\\w+([-+.']\\w+)*@\\w+([-.]\\w+)*\\.\\w+([-.]\\w+)*$`), false, 'validEmail', null, email + \" is an invalid email\"),\n\texpectTrue(length(toString(Fax)) == 11, false, 'FaxNumberNot11digits', null, toString(Fax) + \" Invalid Phone number length\"),\n\texpectExists(Addresses@customer_id == customerIDs@customer_id, false, 'customerIdExists', null, toString(Addresses@customer_id) + \" does not exist in Customers table\")) ~> AddressesValidation\nSelectAddresses derive(address1 = upper(address1),\n\t\taddress2 = upper(address2),\n\t\taddress3 = upper(address3),\n\t\taddress_type = initCap(address_type),\n\t\tphone = substring(phone, 1, 1) + \"-\" + substring(phone, 2, 3) + \"-\" + substring(phone, 5, 3) + \"-\" + substring(phone, 8, 4),\n\t\tFax = substring(Fax, 1, 1) + \"-\" + substring(Fax, 2, 3) + \"-\" + substring(Fax, 5, 3) + \"-\" + substring(Fax, 8, 4)) ~> AddressesTransformation\nAddresses derive(address1 = iif(isNull(address1), \"N/A\", address1),\n\t\taddress2 = iif(isNull(address2), \"N/A\", address2),\n\t\taddress3 = iif(isNull(address3), \"N/A\", address3)) ~> FillNullAddressWithNA\nAddressesValidation select(mapColumn(\n\t\taddress_id,\n\t\taddress_type,\n\t\taddress1,\n\t\taddress2,\n\t\taddress3,\n\t\tcity = Addresses@city,\n\t\tstate = Addresses@state,\n\t\tcountry = Addresses@country,\n\t\tzipcode,\n\t\tphone,\n\t\temail,\n\t\tFax,\n\t\tcustomer_id = Addresses@customer_id\n\t),\n\tskipDuplicateMapInputs: true,\n\tskipDuplicateMapOutputs: true) ~> SelectAddresses\nCustomers select(mapColumn(\n\t\tcustomer_id\n\t),\n\tskipDuplicateMapInputs: true,\n\tskipDuplicateMapOutputs: true) ~> customerIDs\nCustomers assert(expectTrue(!isNull(customer_id), false, 'custIDNotNull', null, \"Customer Id may not be null\"),\n\texpectTrue(upper(source_id) == \"ERP\", false, 'sourceIDERP', null, source_id + \" is an invalid source id -- must be ERP\"),\n\texpectTrue(first_name != \"\", false, 'firstNameNotBlank', null, toString(customer_id) + \": First Name must not be blank\"),\n\texpectTrue(last_name != \"\", false, 'lastNameNotBlank', null, toString(customer_id) + \": Last name is blank\"),\n\texpectTrue(gender == \"Male\" || gender == \"Female\", false, 'maleOrFemale', null, gender + \": is not a valid gender\"),\n\texpectTrue(marital_status == \"Married\" || marital_status == \"Single\", false, 'maritalStatus', null, marital_status + \": is not a valid marital status\"),\n\texpectTrue(avg_family_size > 0, false, 'avgFamilyNot0', null, toString(avg_family_size) + \": is an invalid family size. Must be numeric and cannot be 0.\"),\n\texpectTrue(income_level == \"Low\" || income_level == \"Medium\" || income_level == \"High\", false, 'incomeLevelValid', null, income_level + \": is invalid income level. Must be Low-Medium-High\"),\n\texpectTrue(length(identifier) == 11, false, 'identifierLength11', null, identifier + \": is invalid identifier. Must be 11 characters long.\")) ~> ValidatedCustomers\nValidatedCustomers derive(source_id = upper(source_id),\n\t\tfirst_name = upper(first_name),\n\t\tmiddle_name = upper(middle_name),\n\t\tlast_name = upper(last_name)) ~> DerivedColumn1\nProducts, customerIDs assert(expectExists(Products@customer_id == customerIDs@customer_id, false, 'customerIDExists', null, toString(Products@customer_id) + \": is not a valid customer id\")) ~> Assert1\nAddressesTransformation filter(isError()) ~> Filter1\nAddressesTransformation sink(allowSchemaDrift: true,\n\tvalidateSchema: false,\n\tinput(\n\t\tcity as string,\n\t\tstate as string,\n\t\tcountry as string\n\t),\n\tpartitionFileNames:['Addresses_clean.csv'],\n\tumask: 0022,\n\tpreCommands: [],\n\tpostCommands: [],\n\tskipDuplicateMapInputs: true,\n\tskipDuplicateMapOutputs: true,\n\tpartitionBy('hash', 1)) ~> AddressesClean\nDerivedColumn1 sink(allowSchemaDrift: true,\n\tvalidateSchema: false,\n\tinput(\n\t\tColumn_1 as string,\n\t\tColumn_2 as string,\n\t\tColumn_3 as string\n\t),\n\tpartitionFileNames:['Customers_clean.csv'],\n\tumask: 0022,\n\tpreCommands: [],\n\tpostCommands: [],\n\tskipDuplicateMapInputs: true,\n\tskipDuplicateMapOutputs: true,\n\tpartitionBy('hash', 1)) ~> CustomersClean\nFilter1 sink(allowSchemaDrift: true,\n\tvalidateSchema: false,\n\tinput(\n\t\tColumn_1 as string,\n\t\tColumn_2 as string,\n\t\tColumn_3 as string\n\t),\n\tpartitionFileNames:['AddressErrors.csv'],\n\tumask: 0022,\n\tpreCommands: [],\n\tpostCommands: [],\n\tskipDuplicateMapInputs: true,\n\tskipDuplicateMapOutputs: true,\n\tpartitionBy('hash', 1)) ~> Errors\nAssert1 sink(allowSchemaDrift: true,\n\tvalidateSchema: false,\n\tinput(\n\t\tColumn_1 as string,\n\t\tColumn_2 as string,\n\t\tColumn_3 as string\n\t),\n\tpartitionFileNames:['Products_clean.csv'],\n\tumask: 0022,\n\tpreCommands: [],\n\tpostCommands: [],\n\tskipDuplicateMapInputs: true,\n\tskipDuplicateMapOutputs: true,\n\tpartitionBy('hash', 1)) ~> ProductsClean"
+					"script": "source(output(\n\t\taddress_id as long,\n\t\taddress_type as string,\n\t\taddress1 as string,\n\t\taddress2 as string,\n\t\taddress3 as string,\n\t\tcity as string,\n\t\tstate as string,\n\t\tcountry as string,\n\t\tzipcode as string,\n\t\tphone as string,\n\t\temail as string,\n\t\tFax as string,\n\t\tcustomer_id as long\n\t),\n\tallowSchemaDrift: true,\n\tvalidateSchema: false,\n\tignoreNoFilesFound: false) ~> Addresses\nsource(output(\n\t\tcity as string,\n\t\tstate as string,\n\t\tcountry as string\n\t),\n\tallowSchemaDrift: false,\n\tvalidateSchema: false,\n\tignoreNoFilesFound: false) ~> CityStateCountry\nsource(output(\n\t\tcustomer_id as long,\n\t\tsource_id as string,\n\t\tfirst_name as string,\n\t\tmiddle_name as string,\n\t\tlast_name as string,\n\t\tdob as timestamp,\n\t\tgender as string,\n\t\tnationality as string,\n\t\tmarital_status as string,\n\t\toccupation as string,\n\t\tavg_family_size as integer,\n\t\tincome_level as string,\n\t\tdate_onboarded as timestamp,\n\t\tcreated_date as timestamp,\n\t\tupdated_date as timestamp,\n\t\teffective_start_date as timestamp,\n\t\teffective_end_date as timestamp,\n\t\tIdentifier_type as string,\n\t\tidentifier as string\n\t),\n\tallowSchemaDrift: true,\n\tvalidateSchema: false,\n\tignoreNoFilesFound: false,\n\tdateFormats: ['MM/dd/yyyy'],\n\ttimestampFormats: ['MM/dd/yyyy HH:mm:ss']) ~> Customers\nsource(output(\n\t\tproduct_id as long,\n\t\tproduct_name as string,\n\t\tproduct_type as string,\n\t\tproduct_description as string,\n\t\tissue_date as date,\n\t\tvalid_till_date as date,\n\t\taccount_status as string,\n\t\tcredit_card_limit as long,\n\t\tinterest_rate as double,\n\t\ttenure as long,\n\t\tservice_charges as string,\n\t\tcustomer_id as long,\n\t\tfd_principal_amount as long,\n\t\tloan_collateral_value as long,\n\t\tloan_amount as long\n\t),\n\tallowSchemaDrift: true,\n\tvalidateSchema: false,\n\tignoreNoFilesFound: false,\n\tdateFormats: ['yyyy/MM/dd']) ~> Products\nExists2 assert(expectTrue(!isNull(address_id), false, 'addressIdNotNull', null, 'Address Id is null'),\n\texpectTrue(lower(address_type) == 'residence' || lower(address_type) == 'business', false, 'addressTypeValid', null, \"Address is not residence or business\"),\n\texpectTrue(address1 != \"\", false, 'address1NotBlank', null, 'Address1 is blank'),\n\texpectTrue(address2 != \"\", false, 'address2NotBlank', null, 'Address2 is blank'),\n\texpectTrue(address3 != \"\", false, 'address3NotBlank', null, 'Address3 is blank'),\n\texpectTrue(isInteger(zipcode), false, 'zipcodeNumeric', null, \"Zipcode is not numeric\"),\n\texpectTrue(length(toString(phone)) == 11, false, 'phoneNumberNot11digits', null, toString(phone) + \" Invalid Phone number length\"),\n\texpectTrue(regexMatch(email, `^\\w+([-+.']\\w+)*@\\w+([-.]\\w+)*\\.\\w+([-.]\\w+)*$`), false, 'validEmail', null, email + \" is an invalid email\"),\n\texpectTrue(length(toString(Fax)) == 11, false, 'FaxNumberNot11digits', null, toString(Fax) + \" Invalid Phone number length\")) ~> AddressesValidation\nAddressesValidation derive(address1 = upper(address1),\n\t\taddress2 = upper(address2),\n\t\taddress3 = upper(address3),\n\t\taddress_type = initCap(address_type),\n\t\tphone = substring(phone, 1, 1) + \"-\" + substring(phone, 2, 3) + \"-\" + substring(phone, 5, 3) + \"-\" + substring(phone, 8, 4),\n\t\tFax = substring(Fax, 1, 1) + \"-\" + substring(Fax, 2, 3) + \"-\" + substring(Fax, 5, 3) + \"-\" + substring(Fax, 8, 4)) ~> AddressesTransformation\nAddresses derive(address1 = iif(isNull(address1), \"N/A\", address1),\n\t\taddress2 = iif(isNull(address2), \"N/A\", address2),\n\t\taddress3 = iif(isNull(address3), \"N/A\", address3)) ~> FillNullAddressWithNA\nCustomers select(mapColumn(\n\t\tcustomer_id\n\t),\n\tskipDuplicateMapInputs: true,\n\tskipDuplicateMapOutputs: true) ~> customerIDs\nCustomers assert(expectTrue(!isNull(customer_id), false, 'custIDNotNull', null, \"Customer Id may not be null\"),\n\texpectTrue(upper(source_id) == \"ERP\", false, 'sourceIDERP', null, source_id + \" is an invalid source id -- must be ERP\"),\n\texpectTrue(first_name != \"\", false, 'firstNameNotBlank', null, toString(customer_id) + \": First Name must not be blank\"),\n\texpectTrue(last_name != \"\", false, 'lastNameNotBlank', null, toString(customer_id) + \": Last name is blank\"),\n\texpectTrue(gender == \"Male\" || gender == \"Female\", false, 'maleOrFemale', null, gender + \": is not a valid gender\"),\n\texpectTrue(marital_status == \"Married\" || marital_status == \"Single\", false, 'maritalStatus', null, marital_status + \": is not a valid marital status\"),\n\texpectTrue(avg_family_size > 0, false, 'avgFamilyNot0', null, toString(avg_family_size) + \": is an invalid family size. Must be numeric and cannot be 0.\"),\n\texpectTrue(income_level == \"Low\" || income_level == \"Medium\" || income_level == \"High\", false, 'incomeLevelValid', null, income_level + \": is invalid income level. Must be Low-Medium-High\"),\n\texpectTrue(length(identifier) == 11, false, 'identifierLength11', null, identifier + \": is invalid identifier. Must be 11 characters long.\")) ~> ValidatedCustomers\nValidatedCustomers derive(source_id = upper(source_id),\n\t\tfirst_name = upper(first_name),\n\t\tmiddle_name = upper(middle_name),\n\t\tlast_name = upper(last_name)) ~> DerivedColumn1\nProducts, customerIDs assert(expectExists(Products@customer_id == customerIDs@customer_id, false, 'customerIDExists', null, toString(Products@customer_id) + \": is not a valid customer id\")) ~> Assert1\nAddressesTransformation filter(isError()) ~> Filter1\nFillNullAddressWithNA, CityStateCountry exists(Addresses@city == CityStateCountry@city,\n\tnegate:false,\n\tbroadcast: 'auto')~> Exists1\nExists1, customerIDs exists(customerIDs@customer_id == customerIDs@customer_id,\n\tnegate:false,\n\tbroadcast: 'auto')~> Exists2\nAddressesTransformation sink(allowSchemaDrift: true,\n\tvalidateSchema: false,\n\tinput(\n\t\tcity as string,\n\t\tstate as string,\n\t\tcountry as string\n\t),\n\tpartitionFileNames:['Addresses_clean.csv'],\n\tumask: 0022,\n\tpreCommands: [],\n\tpostCommands: [],\n\tskipDuplicateMapInputs: true,\n\tskipDuplicateMapOutputs: true,\n\tpartitionBy('hash', 1)) ~> AddressesClean\nDerivedColumn1 sink(allowSchemaDrift: true,\n\tvalidateSchema: false,\n\tinput(\n\t\tColumn_1 as string,\n\t\tColumn_2 as string,\n\t\tColumn_3 as string\n\t),\n\tpartitionFileNames:['Customers_clean.csv'],\n\tumask: 0022,\n\tpreCommands: [],\n\tpostCommands: [],\n\tskipDuplicateMapInputs: true,\n\tskipDuplicateMapOutputs: true,\n\tpartitionBy('hash', 1)) ~> CustomersClean\nFilter1 sink(allowSchemaDrift: true,\n\tvalidateSchema: true,\n\tpartitionFileNames:['AddressErrors.csv'],\n\tumask: 0022,\n\tpreCommands: [],\n\tpostCommands: [],\n\tskipDuplicateMapInputs: true,\n\tskipDuplicateMapOutputs: true,\n\tsaveOrder: 1,\n\tpartitionBy('hash', 1)) ~> Errors\nAssert1 sink(allowSchemaDrift: true,\n\tvalidateSchema: false,\n\tinput(\n\t\tColumn_1 as string,\n\t\tColumn_2 as string,\n\t\tColumn_3 as string\n\t),\n\tpartitionFileNames:['Products_clean.csv'],\n\tumask: 0022,\n\tpreCommands: [],\n\tpostCommands: [],\n\tskipDuplicateMapInputs: true,\n\tskipDuplicateMapOutputs: true,\n\tpartitionBy('hash', 1)) ~> ProductsClean"
 				}
 			},
 			"dependsOn": [
