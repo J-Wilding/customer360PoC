@@ -13,7 +13,7 @@
 		"typeProperties": {
 			"location": {
 				"type": "AzureBlobFSLocation",
-				"fileName": "address.txt",
+				"fileName": "address.csv",
 				"fileSystem": "raw"
 			},
 			"columnDelimiter": ",",
