@@ -1,6 +1,9 @@
 {
 	"name": "customer360_ETL",
 	"properties": {
+		"folder": {
+			"name": "old"
+		},
 		"type": "MappingDataFlow",
 		"typeProperties": {
 			"sources": [

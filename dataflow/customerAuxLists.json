@@ -1,6 +1,9 @@
 {
-	"name": "acustomerAuxLists",
+	"name": "customerAuxLists",
 	"properties": {
+		"folder": {
+			"name": "Setup Auxiliary Datasets"
+		},
 		"type": "MappingDataFlow",
 		"typeProperties": {
 			"sources": [
