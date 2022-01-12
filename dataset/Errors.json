@@ -5,6 +5,9 @@
 			"referenceName": "wilding360datalake",
 			"type": "LinkedServiceReference"
 		},
+		"folder": {
+			"name": "Errors"
+		},
 		"annotations": [],
 		"type": "DelimitedText",
 		"typeProperties": {

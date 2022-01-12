@@ -1,5 +1,5 @@
 {
-	"name": "productsETL",
+	"name": "transactionsETL",
 	"properties": {
 		"type": "MappingDataFlow",
 		"typeProperties": {
