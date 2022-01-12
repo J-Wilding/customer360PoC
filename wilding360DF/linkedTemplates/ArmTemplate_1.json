@@ -13,10 +13,65 @@
 	},
 	"resources": [
 		{
+			"name": "[concat(parameters('factoryName'), '/customerIDs')]",
+			"type": "Microsoft.DataFactory/factories/datasets",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"linkedServiceName": {
+					"referenceName": "wilding360datalake",
+					"type": "LinkedServiceReference"
+				},
+				"folder": {
+					"name": "Auxiliary Tables"
+				},
+				"annotations": [],
+				"type": "Parquet",
+				"typeProperties": {
+					"location": {
+						"type": "AzureBlobFSLocation",
+						"folderPath": "customerIDs",
+						"fileSystem": "auxiliary-tables"
+					},
+					"compressionCodec": "snappy"
+				},
+				"schema": []
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/Occupations')]",
+			"type": "Microsoft.DataFactory/factories/datasets",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"linkedServiceName": {
+					"referenceName": "wilding360datalake",
+					"type": "LinkedServiceReference"
+				},
+				"folder": {
+					"name": "Auxiliary Tables"
+				},
+				"annotations": [],
+				"type": "Parquet",
+				"typeProperties": {
+					"location": {
+						"type": "AzureBlobFSLocation",
+						"folderPath": "occupations",
+						"fileSystem": "auxiliary-tables"
+					},
+					"compressionCodec": "snappy"
+				},
+				"schema": []
+			},
+			"dependsOn": []
+		},
+		{
 			"name": "[concat(parameters('factoryName'), '/customer360_ETL')]",
 			"type": "Microsoft.DataFactory/factories/dataflows",
 			"apiVersion": "2018-06-01",
 			"properties": {
+				"folder": {
+					"name": "old"
+				},
 				"type": "MappingDataFlow",
 				"typeProperties": {
 					"sources": [
@@ -412,6 +467,69 @@
 			"dependsOn": []
 		},
 		{
+			"name": "[concat(parameters('factoryName'), '/customerAuxLists')]",
+			"type": "Microsoft.DataFactory/factories/dataflows",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"folder": {
+					"name": "Setup Auxiliary Datasets"
+				},
+				"type": "MappingDataFlow",
+				"typeProperties": {
+					"sources": [
+						{
+							"dataset": {
+								"referenceName": "Customers",
+								"type": "DatasetReference"
+							},
+							"name": "Customers"
+						}
+					],
+					"sinks": [
+						{
+							"dataset": {
+								"referenceName": "Occupations",
+								"type": "DatasetReference"
+							},
+							"name": "Occupations"
+						},
+						{
+							"dataset": {
+								"referenceName": "customerIDs",
+								"type": "DatasetReference"
+							},
+							"name": "CustomerIDs"
+						}
+					],
+					"transformations": [
+						{
+							"name": "Aggregate1"
+						},
+						{
+							"name": "Select1"
+						},
+						{
+							"name": "Select2"
+						},
+						{
+							"name": "Aggregate2"
+						},
+						{
+							"name": "Select3"
+						},
+						{
+							"name": "Select4"
+						}
+					],
+					"script": "source(output(\n\t\tcustomer_id as long,\n\t\tsource_id as string,\n\t\tfirst_name as string,\n\t\tmiddle_name as string,\n\t\tlast_name as string,\n\t\tdob as string,\n\t\tgender as string,\n\t\tnationality as string,\n\t\tmarital_status as string,\n\t\toccupation as string,\n\t\tavg_family_size as string,\n\t\tincome_level as string,\n\t\tdate_onboarded as string,\n\t\tcreated_date as string,\n\t\tupdated_date as string,\n\t\teffective_start_date as string,\n\t\teffective_end_date as string,\n\t\tIdentifier_type as string,\n\t\tidentifier as string\n\t),\n\tallowSchemaDrift: true,\n\tvalidateSchema: false,\n\tignoreNoFilesFound: false) ~> Customers\nSelect1 aggregate(groupBy(customer_id),\n\tcount = count(customer_id)) ~> Aggregate1\nCustomers select(mapColumn(\n\t\tcustomer_id\n\t),\n\tskipDuplicateMapInputs: true,\n\tskipDuplicateMapOutputs: true) ~> Select1\nCustomers select(mapColumn(\n\t\toccupation\n\t),\n\tskipDuplicateMapInputs: true,\n\tskipDuplicateMapOutputs: true) ~> Select2\nSelect2 aggregate(groupBy(occupation),\n\tcount = count(occupation)) ~> Aggregate2\nAggregate1 select(mapColumn(\n\t\tcustomer_id\n\t),\n\tskipDuplicateMapInputs: true,\n\tskipDuplicateMapOutputs: true) ~> Select3\nAggregate2 select(mapColumn(\n\t\toccupation\n\t),\n\tskipDuplicateMapInputs: true,\n\tskipDuplicateMapOutputs: true) ~> Select4\nSelect4 sink(allowSchemaDrift: true,\n\tvalidateSchema: false,\n\tformat: 'parquet',\n\tumask: 0022,\n\tpreCommands: [],\n\tpostCommands: [],\n\tskipDuplicateMapInputs: true,\n\tskipDuplicateMapOutputs: true) ~> Occupations\nSelect3 sink(allowSchemaDrift: true,\n\tvalidateSchema: false,\n\tformat: 'parquet',\n\tumask: 0022,\n\tpreCommands: [],\n\tpostCommands: [],\n\tskipDuplicateMapInputs: true,\n\tskipDuplicateMapOutputs: true) ~> CustomerIDs"
+				}
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/datasets/Occupations')]",
+				"[concat(variables('factoryId'), '/datasets/customerIDs')]"
+			]
+		},
+		{
 			"name": "[concat(parameters('factoryName'), '/Customer360_PoC')]",
 			"type": "Microsoft.DataFactory/factories/pipelines",
 			"apiVersion": "2018-06-01",
@@ -672,6 +790,54 @@
 				"[concat(variables('factoryId'), '/dataflows/productsETL')]",
 				"[concat(variables('factoryId'), '/dataflows/transactionsETL')]",
 				"[concat(variables('factoryId'), '/dataflows/srsETL')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/auxLists')]",
+			"type": "Microsoft.DataFactory/factories/pipelines",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"activities": [
+					{
+						"name": "acustomerAuxLists",
+						"type": "ExecuteDataFlow",
+						"dependsOn": [],
+						"policy": {
+							"timeout": "1.00:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"dataflow": {
+								"referenceName": "customerAuxLists",
+								"type": "DataFlowReference",
+								"parameters": {},
+								"datasetParameters": {
+									"Customers": {},
+									"Occupations": {},
+									"CustomerIDs": {}
+								}
+							},
+							"staging": {},
+							"compute": {
+								"coreCount": 8,
+								"computeType": "General"
+							},
+							"traceLevel": "Fine"
+						}
+					}
+				],
+				"policy": {
+					"elapsedTimeMetric": {},
+					"cancelAfter": {}
+				},
+				"annotations": []
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/dataflows/customerAuxLists')]"
 			]
 		}
 	]
