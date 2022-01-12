@@ -1,0 +1,23 @@
+{
+	"name": "pSrsErrors",
+	"properties": {
+		"linkedServiceName": {
+			"referenceName": "wilding360datalake",
+			"type": "LinkedServiceReference"
+		},
+		"folder": {
+			"name": "Errors"
+		},
+		"annotations": [],
+		"type": "Parquet",
+		"typeProperties": {
+			"location": {
+				"type": "AzureBlobFSLocation",
+				"folderPath": "srs",
+				"fileSystem": "errors"
+			},
+			"compressionCodec": "snappy"
+		},
+		"schema": []
+	}
+}

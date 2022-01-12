@@ -1,5 +1,5 @@
 {
-	"name": "Addresses",
+	"name": "cAddresses",
 	"properties": {
 		"linkedServiceName": {
 			"referenceName": "wilding360datalake",

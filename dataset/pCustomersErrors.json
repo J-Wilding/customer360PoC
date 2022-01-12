@@ -1,0 +1,23 @@
+{
+	"name": "pCustomersErrors",
+	"properties": {
+		"linkedServiceName": {
+			"referenceName": "wilding360datalake",
+			"type": "LinkedServiceReference"
+		},
+		"folder": {
+			"name": "Errors"
+		},
+		"annotations": [],
+		"type": "Parquet",
+		"typeProperties": {
+			"location": {
+				"type": "AzureBlobFSLocation",
+				"folderPath": "customers",
+				"fileSystem": "errors"
+			},
+			"compressionCodec": "snappy"
+		},
+		"schema": []
+	}
+}

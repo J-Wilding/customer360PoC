@@ -1,5 +1,5 @@
 {
-	"name": "SRS",
+	"name": "cSRS",
 	"properties": {
 		"linkedServiceName": {
 			"referenceName": "wilding360datalake",

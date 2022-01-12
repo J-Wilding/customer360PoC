@@ -1,12 +1,12 @@
 {
-	"name": "CityStateCountry",
+	"name": "cCityStateCountry",
 	"properties": {
 		"linkedServiceName": {
 			"referenceName": "wilding360datalake",
 			"type": "LinkedServiceReference"
 		},
 		"folder": {
-			"name": "Auxiliary Tables"
+			"name": "Raw"
 		},
 		"annotations": [],
 		"type": "DelimitedText",

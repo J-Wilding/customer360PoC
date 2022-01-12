@@ -1,0 +1,31 @@
+{
+	"name": "cscConvertAndMove",
+	"properties": {
+		"folder": {
+			"name": "Setup Auxiliary Datasets"
+		},
+		"type": "MappingDataFlow",
+		"typeProperties": {
+			"sources": [
+				{
+					"dataset": {
+						"referenceName": "cCityStateCountry",
+						"type": "DatasetReference"
+					},
+					"name": "cities"
+				}
+			],
+			"sinks": [
+				{
+					"dataset": {
+						"referenceName": "pCityStateCountry",
+						"type": "DatasetReference"
+					},
+					"name": "pCityStateCountry"
+				}
+			],
+			"transformations": [],
+			"script": "source(output(\n\t\tcity as string,\n\t\tstate as string,\n\t\tcountry as string\n\t),\n\tallowSchemaDrift: true,\n\tvalidateSchema: false,\n\tignoreNoFilesFound: false) ~> cities\ncities sink(allowSchemaDrift: true,\n\tvalidateSchema: true,\n\tformat: 'parquet',\n\tumask: 0022,\n\tpreCommands: [],\n\tpostCommands: [],\n\tskipDuplicateMapInputs: true,\n\tskipDuplicateMapOutputs: true) ~> pCityStateCountry"
+		}
+	}
+}

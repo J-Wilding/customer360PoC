@@ -1,0 +1,23 @@
+{
+	"name": "pAddresses_clean",
+	"properties": {
+		"linkedServiceName": {
+			"referenceName": "wilding360datalake",
+			"type": "LinkedServiceReference"
+		},
+		"folder": {
+			"name": "Clean"
+		},
+		"annotations": [],
+		"type": "Parquet",
+		"typeProperties": {
+			"location": {
+				"type": "AzureBlobFSLocation",
+				"folderPath": "addresses",
+				"fileSystem": "clean"
+			},
+			"compressionCodec": "snappy"
+		},
+		"schema": []
+	}
+}

@@ -1,5 +1,5 @@
 {
-	"name": "Products",
+	"name": "cProducts",
 	"properties": {
 		"linkedServiceName": {
 			"referenceName": "wilding360datalake",

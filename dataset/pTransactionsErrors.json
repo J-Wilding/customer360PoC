@@ -1,0 +1,23 @@
+{
+	"name": "pTransactionsErrors",
+	"properties": {
+		"linkedServiceName": {
+			"referenceName": "wilding360datalake",
+			"type": "LinkedServiceReference"
+		},
+		"folder": {
+			"name": "Errors"
+		},
+		"annotations": [],
+		"type": "Parquet",
+		"typeProperties": {
+			"location": {
+				"type": "AzureBlobFSLocation",
+				"folderPath": "transactions",
+				"fileSystem": "errors"
+			},
+			"compressionCodec": "snappy"
+		},
+		"schema": []
+	}
+}

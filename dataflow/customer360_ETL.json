@@ -9,28 +9,28 @@
 			"sources": [
 				{
 					"dataset": {
-						"referenceName": "Addresses",
+						"referenceName": "cAddresses",
 						"type": "DatasetReference"
 					},
 					"name": "Addresses"
 				},
 				{
 					"dataset": {
-						"referenceName": "CityStateCountry",
+						"referenceName": "cCityStateCountry",
 						"type": "DatasetReference"
 					},
 					"name": "CityStateCountry"
 				},
 				{
 					"dataset": {
-						"referenceName": "Customers",
+						"referenceName": "cCustomers",
 						"type": "DatasetReference"
 					},
 					"name": "Customers"
 				},
 				{
 					"dataset": {
-						"referenceName": "Products",
+						"referenceName": "cProducts",
 						"type": "DatasetReference"
 					},
 					"name": "Products"

@@ -6,7 +6,7 @@
 			"sources": [
 				{
 					"dataset": {
-						"referenceName": "Customers",
+						"referenceName": "cCustomers",
 						"type": "DatasetReference"
 					},
 					"name": "Customers"
