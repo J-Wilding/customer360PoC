@@ -50,7 +50,7 @@
 				},
 				{
 					"dataset": {
-						"referenceName": "Errors",
+						"referenceName": "addressesErrors",
 						"type": "DatasetReference"
 					},
 					"name": "Errors"

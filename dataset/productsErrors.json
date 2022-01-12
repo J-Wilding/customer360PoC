@@ -1,5 +1,5 @@
 {
-	"name": "addressesErrors",
+	"name": "productsErrors",
 	"properties": {
 		"linkedServiceName": {
 			"referenceName": "wilding360datalake",
@@ -17,10 +17,9 @@
 			},
 			"columnDelimiter": ",",
 			"escapeChar": "\\",
-			"firstRowAsHeader": false,
+			"firstRowAsHeader": true,
 			"quoteChar": "\""
 		},
 		"schema": []
-	},
-	"type": "Microsoft.DataFactory/factories/datasets"
+	}
 }
