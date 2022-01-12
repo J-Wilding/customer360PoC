@@ -13,19 +13,19 @@
 				},
 				{
 					"dataset": {
-						"referenceName": "Products",
+						"referenceName": "SRS",
 						"type": "DatasetReference"
 					},
-					"name": "Products"
+					"name": "SRS"
 				}
 			],
 			"sinks": [
 				{
 					"dataset": {
-						"referenceName": "Customers_clean",
+						"referenceName": "Srs_clean",
 						"type": "DatasetReference"
 					},
-					"name": "ProductsClean"
+					"name": "SrsClean"
 				}
 			],
 			"transformations": [
@@ -34,12 +34,9 @@
 				},
 				{
 					"name": "Assert1"
-				},
-				{
-					"name": "DerivedColumn1"
 				}
 			],
-			"script": "source(output(\n\t\tcustomer_id as long,\n\t\tsource_id as string,\n\t\tfirst_name as string,\n\t\tmiddle_name as string,\n\t\tlast_name as string,\n\t\tdob as timestamp,\n\t\tgender as string,\n\t\tnationality as string,\n\t\tmarital_status as string,\n\t\toccupation as string,\n\t\tavg_family_size as integer,\n\t\tincome_level as string,\n\t\tdate_onboarded as timestamp,\n\t\tcreated_date as timestamp,\n\t\tupdated_date as timestamp,\n\t\teffective_start_date as timestamp,\n\t\teffective_end_date as timestamp,\n\t\tIdentifier_type as string,\n\t\tidentifier as string\n\t),\n\tallowSchemaDrift: true,\n\tvalidateSchema: false,\n\tignoreNoFilesFound: false,\n\tdateFormats: ['MM/dd/yyyy'],\n\ttimestampFormats: ['MM/dd/yyyy HH:mm:ss']) ~> Customers\nsource(output(\n\t\tproduct_id as integer,\n\t\tproduct_name as string,\n\t\tproduct_type as string,\n\t\tproduct_description as string,\n\t\tissue_date as date,\n\t\tvalid_till_date as date,\n\t\taccount_status as string,\n\t\tcredit_card_limit as integer,\n\t\tinterest_rate as double,\n\t\ttenure as integer,\n\t\tservice_charges as string,\n\t\tcustomer_id as integer,\n\t\tfd_principal_amount as integer,\n\t\tloan_collateral_value as integer,\n\t\tloan_amount as integer\n\t),\n\tallowSchemaDrift: true,\n\tvalidateSchema: false,\n\tignoreNoFilesFound: false,\n\tdateFormats: ['yyyy/MM/dd']) ~> Products\nCustomers select(mapColumn(\n\t\tcustomer_id\n\t),\n\tskipDuplicateMapInputs: true,\n\tskipDuplicateMapOutputs: true) ~> customerIDs\nProducts, customerIDs assert(expectExists(Products@customer_id == customerIDs@customer_id, false, 'customerIDExists', null, toString(Products@customer_id) + \": is not a valid customer id\"),\n\texpectTrue(valid_till_date >= issue_date, false, 'validAfterIssueDate'),\n\texpectTrue(account_status == \"Open\" || account_status == \"Closed\", false, 'accountStatusOpenClosed')) ~> Assert1\nAssert1 derive(product_name = initCap(product_name),\n\t\tproduct_type = upper(product_type),\n\t\tproduct_description = upper(product_description),\n\t\tissue_date = toDate(toString(issue_date), \"MMM-dd-yyyy\"),\n\t\tvalid_till_date = toDate(toString(valid_till_date), \"MMM-dd-yyyy\")) ~> DerivedColumn1\nDerivedColumn1 sink(allowSchemaDrift: true,\n\tvalidateSchema: false,\n\tinput(\n\t\tColumn_1 as string,\n\t\tColumn_2 as string,\n\t\tColumn_3 as string\n\t),\n\tpartitionFileNames:['Products_clean.csv'],\n\tumask: 0022,\n\tpreCommands: [],\n\tpostCommands: [],\n\tskipDuplicateMapInputs: true,\n\tskipDuplicateMapOutputs: true,\n\tpartitionBy('hash', 1)) ~> ProductsClean"
+			"script": "source(output(\n\t\tcustomer_id as long,\n\t\tsource_id as string,\n\t\tfirst_name as string,\n\t\tmiddle_name as string,\n\t\tlast_name as string,\n\t\tdob as timestamp,\n\t\tgender as string,\n\t\tnationality as string,\n\t\tmarital_status as string,\n\t\toccupation as string,\n\t\tavg_family_size as integer,\n\t\tincome_level as string,\n\t\tdate_onboarded as timestamp,\n\t\tcreated_date as timestamp,\n\t\tupdated_date as timestamp,\n\t\teffective_start_date as timestamp,\n\t\teffective_end_date as timestamp,\n\t\tIdentifier_type as string,\n\t\tidentifier as string\n\t),\n\tallowSchemaDrift: true,\n\tvalidateSchema: false,\n\tignoreNoFilesFound: false,\n\tdateFormats: ['MM/dd/yyyy'],\n\ttimestampFormats: ['MM/dd/yyyy HH:mm:ss']) ~> Customers\nsource(output(\n\t\tsr_id as integer,\n\t\tcustomer_id as integer,\n\t\tproduct_id as integer,\n\t\tsr_description as string,\n\t\tsr_open_date as date,\n\t\tsr_close_date as date,\n\t\tsr_type as string,\n\t\tchannel as string,\n\t\tsr_cust_feedback as string\n\t),\n\tallowSchemaDrift: false,\n\tvalidateSchema: false,\n\tignoreNoFilesFound: false,\n\tdateFormats: ['yyyy/MM/dd']) ~> SRS\nCustomers select(mapColumn(\n\t\tcustomer_id\n\t),\n\tskipDuplicateMapInputs: true,\n\tskipDuplicateMapOutputs: true) ~> customerIDs\nSRS, customerIDs assert(expectTrue(!isNull(sr_id), false, 'srIDNotNull'),\n\texpectExists(SRS@customer_id == customerIDs@customer_id, false, 'custIDExists'),\n\texpectTrue(length(sr_description) > 0 && length(sr_description) <= 100, false, 'descriptionLength'),\n\texpectTrue(sr_close_date >= sr_open_date, false, 'validCloseDate'),\n\texpectTrue(length(sr_cust_feedback) > 0 && length(sr_cust_feedback) <= 100, false, 'custFeedbackLength')) ~> Assert1\nAssert1 sink(allowSchemaDrift: true,\n\tvalidateSchema: false,\n\tpartitionFileNames:['Products_clean.csv'],\n\tumask: 0022,\n\tpreCommands: [],\n\tpostCommands: [],\n\tskipDuplicateMapInputs: true,\n\tskipDuplicateMapOutputs: true,\n\tpartitionBy('hash', 1)) ~> SrsClean"
 		}
 	}
 }
