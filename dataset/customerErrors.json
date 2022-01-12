@@ -1,0 +1,25 @@
+{
+	"name": "customerErrors",
+	"properties": {
+		"linkedServiceName": {
+			"referenceName": "wilding360datalake",
+			"type": "LinkedServiceReference"
+		},
+		"folder": {
+			"name": "Errors"
+		},
+		"annotations": [],
+		"type": "DelimitedText",
+		"typeProperties": {
+			"location": {
+				"type": "AzureBlobFSLocation",
+				"fileSystem": "errors"
+			},
+			"columnDelimiter": ",",
+			"escapeChar": "\\",
+			"firstRowAsHeader": true,
+			"quoteChar": "\""
+		},
+		"schema": []
+	}
+}
