@@ -1,20 +1,20 @@
 {
-	"name": "pCityStateCountry",
+	"name": "Transactions",
 	"properties": {
 		"linkedServiceName": {
 			"referenceName": "wilding360datalake",
 			"type": "LinkedServiceReference"
 		},
 		"folder": {
-			"name": "Auxiliary Tables"
+			"name": "Raw"
 		},
 		"annotations": [],
 		"type": "Parquet",
 		"typeProperties": {
 			"location": {
 				"type": "AzureBlobFSLocation",
-				"folderPath": "cityStateCountry",
-				"fileSystem": "auxiliary-tables"
+				"folderPath": "Parquet/transactions",
+				"fileSystem": "raw"
 			},
 			"compressionCodec": "snappy"
 		},
