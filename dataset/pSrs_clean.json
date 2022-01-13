@@ -1,20 +1,20 @@
 {
-	"name": "SRS",
+	"name": "pSrs_clean",
 	"properties": {
 		"linkedServiceName": {
 			"referenceName": "wilding360datalake",
 			"type": "LinkedServiceReference"
 		},
 		"folder": {
-			"name": "Raw"
+			"name": "Clean"
 		},
 		"annotations": [],
 		"type": "Parquet",
 		"typeProperties": {
 			"location": {
 				"type": "AzureBlobFSLocation",
-				"folderPath": "Parquet/srs",
-				"fileSystem": "raw"
+				"folderPath": "srs",
+				"fileSystem": "clean"
 			},
 			"compressionCodec": "snappy"
 		},

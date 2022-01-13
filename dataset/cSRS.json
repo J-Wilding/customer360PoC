@@ -1,20 +1,20 @@
 {
-	"name": "Addresses_clean",
+	"name": "cSRS",
 	"properties": {
 		"linkedServiceName": {
 			"referenceName": "wilding360datalake",
 			"type": "LinkedServiceReference"
 		},
 		"folder": {
-			"name": "Clean"
+			"name": "Raw/csv"
 		},
 		"annotations": [],
 		"type": "DelimitedText",
 		"typeProperties": {
 			"location": {
 				"type": "AzureBlobFSLocation",
-				"folderPath": "addresses",
-				"fileSystem": "clean"
+				"fileName": "srs.csv",
+				"fileSystem": "raw"
 			},
 			"columnDelimiter": ",",
 			"escapeChar": "\\",
@@ -23,15 +23,39 @@
 		},
 		"schema": [
 			{
-				"name": "city",
+				"name": "sr_id",
 				"type": "String"
 			},
 			{
-				"name": "state",
+				"name": "customer_id",
 				"type": "String"
 			},
 			{
-				"name": "country",
+				"name": "product_id",
+				"type": "String"
+			},
+			{
+				"name": "sr_description",
+				"type": "String"
+			},
+			{
+				"name": "sr_open_date",
+				"type": "String"
+			},
+			{
+				"name": "sr_close_date",
+				"type": "String"
+			},
+			{
+				"name": "sr_type",
+				"type": "String"
+			},
+			{
+				"name": "channel",
+				"type": "String"
+			},
+			{
+				"name": "sr_cust_feedback",
 				"type": "String"
 			}
 		]

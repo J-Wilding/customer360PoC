@@ -3,27 +3,36 @@
 	"properties": {
 		"activities": [
 			{
-				"name": "customer360_ETL",
-				"type": "ExecuteDataFlow",
+				"name": "cpCSVtoParquet",
+				"type": "ExecutePipeline",
 				"dependsOn": [],
-				"policy": {
-					"timeout": "1.00:00:00",
-					"retry": 0,
-					"retryIntervalInSeconds": 30,
-					"secureOutput": false,
-					"secureInput": false
-				},
 				"userProperties": [],
 				"typeProperties": {
-					"dataflow": {
-						"referenceName": "customer360_ETL",
-						"type": "DataFlowReference"
+					"pipeline": {
+						"referenceName": "cpCSVtoParquet",
+						"type": "PipelineReference"
 					},
-					"compute": {
-						"coreCount": 8,
-						"computeType": "General"
+					"waitOnCompletion": true
+				}
+			},
+			{
+				"name": "ETL",
+				"type": "ExecutePipeline",
+				"dependsOn": [
+					{
+						"activity": "cpCSVtoParquet",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"userProperties": [],
+				"typeProperties": {
+					"pipeline": {
+						"referenceName": "ETL",
+						"type": "PipelineReference"
 					},
-					"traceLevel": "Fine"
+					"waitOnCompletion": true
 				}
 			}
 		],

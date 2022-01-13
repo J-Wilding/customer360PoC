@@ -1,24 +1,22 @@
 {
-	"name": "srsErrors",
+	"name": "cityStateCountry",
 	"properties": {
 		"linkedServiceName": {
 			"referenceName": "wilding360datalake",
 			"type": "LinkedServiceReference"
 		},
 		"folder": {
-			"name": "Errors"
+			"name": "Auxiliary Tables"
 		},
 		"annotations": [],
-		"type": "DelimitedText",
+		"type": "Parquet",
 		"typeProperties": {
 			"location": {
 				"type": "AzureBlobFSLocation",
-				"fileSystem": "errors"
+				"folderPath": "cityStateCountry",
+				"fileSystem": "auxiliary-tables"
 			},
-			"columnDelimiter": ",",
-			"escapeChar": "\\",
-			"firstRowAsHeader": true,
-			"quoteChar": "\""
+			"compressionCodec": "snappy"
 		},
 		"schema": []
 	}

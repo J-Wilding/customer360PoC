@@ -1,0 +1,59 @@
+{
+	"name": "convertSourceFilesParquet",
+	"properties": {
+		"folder": {
+			"name": "old"
+		},
+		"type": "MappingDataFlow",
+		"typeProperties": {
+			"sources": [
+				{
+					"dataset": {
+						"referenceName": "cAddresses",
+						"type": "DatasetReference"
+					},
+					"name": "Addresses"
+				},
+				{
+					"dataset": {
+						"referenceName": "cCustomers",
+						"type": "DatasetReference"
+					},
+					"name": "Customers"
+				},
+				{
+					"dataset": {
+						"referenceName": "cProducts",
+						"type": "DatasetReference"
+					},
+					"name": "Products"
+				}
+			],
+			"sinks": [
+				{
+					"dataset": {
+						"referenceName": "Addresses",
+						"type": "DatasetReference"
+					},
+					"name": "sink1"
+				},
+				{
+					"dataset": {
+						"referenceName": "Customers",
+						"type": "DatasetReference"
+					},
+					"name": "sink2"
+				},
+				{
+					"dataset": {
+						"referenceName": "Products",
+						"type": "DatasetReference"
+					},
+					"name": "sink3"
+				}
+			],
+			"transformations": [],
+			"script": "source(output(\n\t\taddress_id as long,\n\t\taddress_type as string,\n\t\taddress1 as string,\n\t\taddress2 as string,\n\t\taddress3 as string,\n\t\tcity as string,\n\t\tstate as string,\n\t\tcountry as string,\n\t\tzipcode as string,\n\t\tphone as string,\n\t\temail as string,\n\t\tFax as string,\n\t\tcustomer_id as long\n\t),\n\tallowSchemaDrift: true,\n\tvalidateSchema: false,\n\tignoreNoFilesFound: false) ~> Addresses\nsource(output(\n\t\tcustomer_id as long,\n\t\tsource_id as string,\n\t\tfirst_name as string,\n\t\tmiddle_name as string,\n\t\tlast_name as string,\n\t\tdob as date,\n\t\tgender as string,\n\t\tnationality as string,\n\t\tmarital_status as string,\n\t\toccupation as string,\n\t\tavg_family_size as integer,\n\t\tincome_level as string,\n\t\tdate_onboarded as date,\n\t\tcreated_date as date,\n\t\tupdated_date as date,\n\t\teffective_start_date as date,\n\t\teffective_end_date as date,\n\t\tIdentifier_type as string,\n\t\tidentifier as string\n\t),\n\tallowSchemaDrift: true,\n\tvalidateSchema: false,\n\tignoreNoFilesFound: false,\n\tdateFormats: ['MM/dd/yyyy']) ~> Customers\nsource(output(\n\t\tproduct_id as long,\n\t\tproduct_name as string,\n\t\tproduct_type as string,\n\t\tproduct_description as string,\n\t\tissue_date as date,\n\t\tvalid_till_date as date,\n\t\taccount_status as string,\n\t\tcredit_card_limit as long,\n\t\tinterest_rate as double,\n\t\ttenure as long,\n\t\tservice_charges as long,\n\t\tcustomer_id as long,\n\t\tfd_principal_amount as long,\n\t\tloan_collateral_value as long,\n\t\tloan_amount as long\n\t),\n\tallowSchemaDrift: true,\n\tvalidateSchema: false,\n\tignoreNoFilesFound: false,\n\tdateFormats: ['yyyy/MM/dd']) ~> Products\nAddresses sink(allowSchemaDrift: true,\n\tvalidateSchema: false,\n\tformat: 'parquet',\n\tumask: 0022,\n\tpreCommands: [],\n\tpostCommands: [],\n\tskipDuplicateMapInputs: true,\n\tskipDuplicateMapOutputs: true) ~> sink1\nCustomers sink(allowSchemaDrift: true,\n\tvalidateSchema: false,\n\tformat: 'parquet',\n\tumask: 0022,\n\tpreCommands: [],\n\tpostCommands: [],\n\tskipDuplicateMapInputs: true,\n\tskipDuplicateMapOutputs: true) ~> sink2\nProducts sink(allowSchemaDrift: true,\n\tvalidateSchema: false,\n\tformat: 'parquet',\n\tumask: 0022,\n\tpreCommands: [],\n\tpostCommands: [],\n\tskipDuplicateMapInputs: true,\n\tskipDuplicateMapOutputs: true) ~> sink3"
+		}
+	}
+}

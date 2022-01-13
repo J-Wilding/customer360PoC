@@ -1,5 +1,5 @@
 {
-	"name": "transactionErrors",
+	"name": "pTransactionsErrors",
 	"properties": {
 		"linkedServiceName": {
 			"referenceName": "wilding360datalake",
@@ -9,16 +9,14 @@
 			"name": "Errors"
 		},
 		"annotations": [],
-		"type": "DelimitedText",
+		"type": "Parquet",
 		"typeProperties": {
 			"location": {
 				"type": "AzureBlobFSLocation",
+				"folderPath": "transactions",
 				"fileSystem": "errors"
 			},
-			"columnDelimiter": ",",
-			"escapeChar": "\\",
-			"firstRowAsHeader": true,
-			"quoteChar": "\""
+			"compressionCodec": "snappy"
 		},
 		"schema": []
 	}

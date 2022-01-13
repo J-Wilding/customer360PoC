@@ -1,5 +1,5 @@
 {
-	"name": "Srs_clean",
+	"name": "pAddresses_clean",
 	"properties": {
 		"linkedServiceName": {
 			"referenceName": "wilding360datalake",
@@ -9,17 +9,14 @@
 			"name": "Clean"
 		},
 		"annotations": [],
-		"type": "DelimitedText",
+		"type": "Parquet",
 		"typeProperties": {
 			"location": {
 				"type": "AzureBlobFSLocation",
-				"folderPath": "srs",
+				"folderPath": "addresses",
 				"fileSystem": "clean"
 			},
-			"columnDelimiter": ",",
-			"escapeChar": "\\",
-			"firstRowAsHeader": true,
-			"quoteChar": "\""
+			"compressionCodec": "snappy"
 		},
 		"schema": []
 	}

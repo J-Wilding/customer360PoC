@@ -1,20 +1,20 @@
 {
-	"name": "SRS",
+	"name": "pCustomersErrors",
 	"properties": {
 		"linkedServiceName": {
 			"referenceName": "wilding360datalake",
 			"type": "LinkedServiceReference"
 		},
 		"folder": {
-			"name": "Raw"
+			"name": "Errors"
 		},
 		"annotations": [],
 		"type": "Parquet",
 		"typeProperties": {
 			"location": {
 				"type": "AzureBlobFSLocation",
-				"folderPath": "Parquet/srs",
-				"fileSystem": "raw"
+				"folderPath": "customers",
+				"fileSystem": "errors"
 			},
 			"compressionCodec": "snappy"
 		},

@@ -1,20 +1,20 @@
 {
-	"name": "SRS",
+	"name": "productNameTypeDesc",
 	"properties": {
 		"linkedServiceName": {
 			"referenceName": "wilding360datalake",
 			"type": "LinkedServiceReference"
 		},
 		"folder": {
-			"name": "Raw"
+			"name": "Auxiliary Tables"
 		},
 		"annotations": [],
 		"type": "Parquet",
 		"typeProperties": {
 			"location": {
 				"type": "AzureBlobFSLocation",
-				"folderPath": "Parquet/srs",
-				"fileSystem": "raw"
+				"folderPath": "productNames",
+				"fileSystem": "auxiliary-tables"
 			},
 			"compressionCodec": "snappy"
 		},
