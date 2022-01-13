@@ -18,6 +18,15 @@
 			},
 			"compressionCodec": "snappy"
 		},
-		"schema": []
+		"schema": [
+			{
+				"name": "sr_type",
+				"type": "UTF8"
+			},
+			{
+				"name": "count",
+				"type": "INT64"
+			}
+		]
 	}
 }

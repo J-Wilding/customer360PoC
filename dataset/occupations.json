@@ -18,6 +18,11 @@
 			},
 			"compressionCodec": "snappy"
 		},
-		"schema": []
+		"schema": [
+			{
+				"name": "occupation",
+				"type": "UTF8"
+			}
+		]
 	}
 }

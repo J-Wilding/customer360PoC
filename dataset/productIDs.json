@@ -18,6 +18,11 @@
 			},
 			"compressionCodec": "snappy"
 		},
-		"schema": []
+		"schema": [
+			{
+				"name": "product_id",
+				"type": "INT64"
+			}
+		]
 	}
 }

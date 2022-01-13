@@ -17,6 +17,27 @@
 						"type": "DatasetReference"
 					},
 					"name": "SRS"
+				},
+				{
+					"dataset": {
+						"referenceName": "srTypes",
+						"type": "DatasetReference"
+					},
+					"name": "srTypes"
+				},
+				{
+					"dataset": {
+						"referenceName": "productIDs",
+						"type": "DatasetReference"
+					},
+					"name": "productIDs"
+				},
+				{
+					"dataset": {
+						"referenceName": "channels",
+						"type": "DatasetReference"
+					},
+					"name": "channels"
 				}
 			],
 			"sinks": [
@@ -37,13 +58,40 @@
 			],
 			"transformations": [
 				{
-					"name": "Assert1"
+					"name": "Asserts"
 				},
 				{
 					"name": "Filter1"
+				},
+				{
+					"name": "noCustID"
+				},
+				{
+					"name": "custIDExists"
+				},
+				{
+					"name": "prodIDExists"
+				},
+				{
+					"name": "srTypeExists"
+				},
+				{
+					"name": "channelExists"
+				},
+				{
+					"name": "noProdID"
+				},
+				{
+					"name": "noSRType"
+				},
+				{
+					"name": "noChannel"
+				},
+				{
+					"name": "Filter2"
 				}
 			],
-			"script": "source(output(\n\t\tcustomer_id as long\n\t),\n\tallowSchemaDrift: true,\n\tvalidateSchema: false,\n\tignoreNoFilesFound: false,\n\tformat: 'parquet',\n\tdateFormats: ['MM/dd/yyyy'],\n\ttimestampFormats: ['MM/dd/yyyy HH:mm:ss']) ~> Customers\nsource(output(\n\t\tsr_id as long,\n\t\tcustomer_id as long,\n\t\tproduct_id as long,\n\t\tsr_description as string,\n\t\tsr_open_date as timestamp,\n\t\tsr_close_date as timestamp,\n\t\tsr_type as string,\n\t\tchannel as string,\n\t\tsr_cust_feedback as string\n\t),\n\tallowSchemaDrift: false,\n\tvalidateSchema: false,\n\tignoreNoFilesFound: false,\n\tformat: 'parquet',\n\tdateFormats: ['yyyy/MM/dd']) ~> SRS\nSRS, Customers assert(expectTrue(!isNull(sr_id), false, 'srIDNotNull'),\n\texpectExists(SRS@customer_id == Customers@customer_id, false, 'custIDExists'),\n\texpectTrue(length(sr_description) > 0 && length(sr_description) <= 100, false, 'descriptionLength'),\n\texpectTrue(sr_close_date >= sr_open_date, false, 'validCloseDate'),\n\texpectTrue(length(sr_cust_feedback) > 0 && length(sr_cust_feedback) <= 100, false, 'custFeedbackLength')) ~> Assert1\nAssert1 filter(isError()) ~> Filter1\nAssert1 sink(allowSchemaDrift: true,\n\tvalidateSchema: true,\n\tformat: 'parquet',\n\tumask: 0022,\n\tpreCommands: [],\n\tpostCommands: [],\n\tskipDuplicateMapInputs: true,\n\tskipDuplicateMapOutputs: true) ~> SrsClean\nFilter1 sink(allowSchemaDrift: true,\n\tvalidateSchema: true,\n\tformat: 'parquet',\n\tumask: 0022,\n\tpreCommands: [],\n\tpostCommands: [],\n\tskipDuplicateMapInputs: true,\n\tskipDuplicateMapOutputs: true) ~> srsErrors"
+			"script": "source(output(\n\t\tcustomer_id as long\n\t),\n\tallowSchemaDrift: true,\n\tvalidateSchema: false,\n\tignoreNoFilesFound: false,\n\tformat: 'parquet',\n\tdateFormats: ['MM/dd/yyyy'],\n\ttimestampFormats: ['MM/dd/yyyy HH:mm:ss']) ~> Customers\nsource(output(\n\t\tsr_id as long,\n\t\tcustomer_id as long,\n\t\tproduct_id as long,\n\t\tsr_description as string,\n\t\tsr_open_date as timestamp,\n\t\tsr_close_date as timestamp,\n\t\tsr_type as string,\n\t\tchannel as string,\n\t\tsr_cust_feedback as string\n\t),\n\tallowSchemaDrift: false,\n\tvalidateSchema: false,\n\tignoreNoFilesFound: false,\n\tformat: 'parquet',\n\tdateFormats: ['yyyy/MM/dd']) ~> SRS\nsource(output(\n\t\tsr_type as string,\n\t\tcount as long\n\t),\n\tallowSchemaDrift: true,\n\tvalidateSchema: false,\n\tignoreNoFilesFound: false,\n\tformat: 'parquet') ~> srTypes\nsource(output(\n\t\tproduct_id as long\n\t),\n\tallowSchemaDrift: true,\n\tvalidateSchema: false,\n\tignoreNoFilesFound: false,\n\tformat: 'parquet') ~> productIDs\nsource(output(\n\t\tchannel as string,\n\t\tcount as long\n\t),\n\tallowSchemaDrift: true,\n\tvalidateSchema: false,\n\tignoreNoFilesFound: false,\n\tformat: 'parquet') ~> channels\nSRS assert(expectTrue(!isNull(sr_id), false, 'srIDNotNull'),\n\texpectTrue(length(sr_description) > 0 && length(sr_description) <= 100, false, 'descriptionLength'),\n\texpectTrue(sr_close_date >= sr_open_date, false, 'validCloseDate'),\n\texpectTrue(length(sr_cust_feedback) > 0 && length(sr_cust_feedback) <= 100, false, 'custFeedbackLength')) ~> Asserts\nAsserts filter(isError()) ~> Filter1\nFilter1, custIDExists union(byName: true)~> noCustID\nAsserts, Customers exists(SRS@customer_id == Customers@customer_id,\n\tnegate:true,\n\tbroadcast: 'auto')~> custIDExists\nAsserts, productIDs exists(SRS@product_id == productIDs@product_id,\n\tnegate:true,\n\tbroadcast: 'auto')~> prodIDExists\nAsserts, srTypes exists(SRS@sr_type == srTypes@sr_type,\n\tnegate:true,\n\tbroadcast: 'auto')~> srTypeExists\nAsserts, channels exists(SRS@channel == channels@channel,\n\tnegate:true,\n\tbroadcast: 'auto')~> channelExists\nnoCustID, prodIDExists union(byName: true)~> noProdID\nnoProdID, srTypeExists union(byName: true)~> noSRType\nnoSRType, channelExists union(byName: true)~> noChannel\nproductIDs filter(product_id == 3071) ~> Filter2\nAsserts sink(allowSchemaDrift: true,\n\tvalidateSchema: true,\n\tformat: 'parquet',\n\tumask: 0022,\n\tpreCommands: [],\n\tpostCommands: [],\n\tskipDuplicateMapInputs: true,\n\tskipDuplicateMapOutputs: true) ~> SrsClean\nnoChannel sink(allowSchemaDrift: true,\n\tvalidateSchema: true,\n\tformat: 'parquet',\n\tumask: 0022,\n\tpreCommands: [],\n\tpostCommands: [],\n\tskipDuplicateMapInputs: true,\n\tskipDuplicateMapOutputs: true) ~> srsErrors"
 		}
 	}
 }

@@ -18,6 +18,23 @@
 			},
 			"compressionCodec": "snappy"
 		},
-		"schema": []
+		"schema": [
+			{
+				"name": "product_name",
+				"type": "UTF8"
+			},
+			{
+				"name": "product_type",
+				"type": "UTF8"
+			},
+			{
+				"name": "product_description",
+				"type": "UTF8"
+			},
+			{
+				"name": "count",
+				"type": "INT64"
+			}
+		]
 	}
 }
