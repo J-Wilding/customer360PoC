@@ -1,5 +1,5 @@
 {
-	"name": "Occupations",
+	"name": "occupations",
 	"properties": {
 		"linkedServiceName": {
 			"referenceName": "wilding360datalake",

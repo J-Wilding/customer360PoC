@@ -5,6 +5,9 @@
 			"referenceName": "wilding360datalake",
 			"type": "LinkedServiceReference"
 		},
+		"folder": {
+			"name": "Auxiliary Tables"
+		},
 		"annotations": [],
 		"type": "Parquet",
 		"typeProperties": {
