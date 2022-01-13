@@ -1,5 +1,5 @@
 {
-	"name": "cityStateCountry",
+	"name": "merchantNames",
 	"properties": {
 		"linkedServiceName": {
 			"referenceName": "wilding360datalake",
@@ -13,7 +13,7 @@
 		"typeProperties": {
 			"location": {
 				"type": "AzureBlobFSLocation",
-				"folderPath": "cityStateCountry",
+				"folderPath": "merchants",
 				"fileSystem": "auxiliary-tables"
 			},
 			"compressionCodec": "snappy"

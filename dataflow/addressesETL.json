@@ -20,7 +20,7 @@
 				},
 				{
 					"dataset": {
-						"referenceName": "pCityStateCountry",
+						"referenceName": "cityStateCountry",
 						"type": "DatasetReference"
 					},
 					"name": "CityStateCountry"

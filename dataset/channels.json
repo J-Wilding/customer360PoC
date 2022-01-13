@@ -1,19 +1,16 @@
 {
-	"name": "cityStateCountry",
+	"name": "channels",
 	"properties": {
 		"linkedServiceName": {
 			"referenceName": "wilding360datalake",
 			"type": "LinkedServiceReference"
-		},
-		"folder": {
-			"name": "Auxiliary Tables"
 		},
 		"annotations": [],
 		"type": "Parquet",
 		"typeProperties": {
 			"location": {
 				"type": "AzureBlobFSLocation",
-				"folderPath": "cityStateCountry",
+				"folderPath": "channels",
 				"fileSystem": "auxiliary-tables"
 			},
 			"compressionCodec": "snappy"
