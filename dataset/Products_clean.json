@@ -1,5 +1,5 @@
 {
-	"name": "pProducts_clean",
+	"name": "Products_clean",
 	"properties": {
 		"linkedServiceName": {
 			"referenceName": "wilding360datalake",

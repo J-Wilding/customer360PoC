@@ -1,5 +1,5 @@
 {
-	"name": "pSrs_clean",
+	"name": "Srs_clean",
 	"properties": {
 		"linkedServiceName": {
 			"referenceName": "wilding360datalake",

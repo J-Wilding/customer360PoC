@@ -6,7 +6,7 @@
 			"sources": [
 				{
 					"dataset": {
-						"referenceName": "pAddresses_clean",
+						"referenceName": "Addresses_clean",
 						"type": "DatasetReference"
 					},
 					"name": "source1"

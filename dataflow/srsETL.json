@@ -43,7 +43,7 @@
 			"sinks": [
 				{
 					"dataset": {
-						"referenceName": "pSrs_clean",
+						"referenceName": "Srs_clean",
 						"type": "DatasetReference"
 					},
 					"name": "SrsClean"

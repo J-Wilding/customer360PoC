@@ -22,7 +22,7 @@
 			"sinks": [
 				{
 					"dataset": {
-						"referenceName": "pCustomers_clean",
+						"referenceName": "Customers_clean",
 						"type": "DatasetReference"
 					},
 					"name": "CustomersClean"

@@ -1,5 +1,5 @@
 {
-	"name": "pAddresses_clean",
+	"name": "Addresses_clean",
 	"properties": {
 		"linkedServiceName": {
 			"referenceName": "wilding360datalake",

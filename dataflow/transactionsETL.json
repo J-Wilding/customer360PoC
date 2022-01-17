@@ -43,7 +43,7 @@
 			"sinks": [
 				{
 					"dataset": {
-						"referenceName": "pTransactions_clean",
+						"referenceName": "Transactions_clean",
 						"type": "DatasetReference"
 					},
 					"name": "TransactionsClean"

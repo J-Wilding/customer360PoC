@@ -1,5 +1,5 @@
 {
-	"name": "pTransactions_clean",
+	"name": "Transactions_clean",
 	"properties": {
 		"linkedServiceName": {
 			"referenceName": "wilding360datalake",
