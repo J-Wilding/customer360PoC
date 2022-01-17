@@ -1,0 +1,20 @@
+{
+	"name": "Churn",
+	"properties": {
+		"linkedServiceName": {
+			"referenceName": "wilding360datalake",
+			"type": "LinkedServiceReference"
+		},
+		"annotations": [],
+		"type": "Parquet",
+		"typeProperties": {
+			"location": {
+				"type": "AzureBlobFSLocation",
+				"folderPath": "churn",
+				"fileSystem": "clean"
+			},
+			"compressionCodec": "snappy"
+		},
+		"schema": []
+	}
+}

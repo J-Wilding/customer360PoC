@@ -3,29 +3,9 @@
 	"properties": {
 		"activities": [
 			{
-				"name": "cpCSVtoParquet",
-				"type": "ExecutePipeline",
-				"dependsOn": [],
-				"userProperties": [],
-				"typeProperties": {
-					"pipeline": {
-						"referenceName": "cpCSVtoParquet",
-						"type": "PipelineReference"
-					},
-					"waitOnCompletion": true
-				}
-			},
-			{
 				"name": "ETL",
 				"type": "ExecutePipeline",
-				"dependsOn": [
-					{
-						"activity": "cpCSVtoParquet",
-						"dependencyConditions": [
-							"Succeeded"
-						]
-					}
-				],
+				"dependsOn": [],
 				"userProperties": [],
 				"typeProperties": {
 					"pipeline": {
