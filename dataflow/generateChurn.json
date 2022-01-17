@@ -6,7 +6,21 @@
 			"sources": [
 				{
 					"dataset": {
+						"referenceName": "Customers_clean",
+						"type": "DatasetReference"
+					},
+					"name": "Customers"
+				},
+				{
+					"dataset": {
 						"referenceName": "Addresses_clean",
+						"type": "DatasetReference"
+					},
+					"name": "Addresses"
+				},
+				{
+					"dataset": {
+						"referenceName": "Products_clean",
 						"type": "DatasetReference"
 					},
 					"name": "source1"
@@ -18,11 +32,24 @@
 						"referenceName": "Churn",
 						"type": "DatasetReference"
 					},
-					"name": "sink1"
+					"name": "Churn"
 				}
 			],
-			"transformations": [],
-			"script": "source(allowSchemaDrift: true,\n\tvalidateSchema: false,\n\tignoreNoFilesFound: false,\n\tformat: 'parquet') ~> source1\nsource1 sink(allowSchemaDrift: true,\n\tvalidateSchema: false,\n\tformat: 'parquet',\n\tumask: 0022,\n\tpreCommands: [],\n\tpostCommands: [],\n\tskipDuplicateMapInputs: true,\n\tskipDuplicateMapOutputs: true,\n\tsaveOrder: 1) ~> sink1"
+			"transformations": [
+				{
+					"name": "Join1"
+				},
+				{
+					"name": "customerIDCountry"
+				},
+				{
+					"name": "DerivedColumn1"
+				},
+				{
+					"name": "customers1"
+				}
+			],
+			"script": "source(output(\n\t\tcustomer_id as long,\n\t\tsource_id as string,\n\t\tfirst_name as string,\n\t\tmiddle_name as string,\n\t\tlast_name as string,\n\t\tdob as timestamp,\n\t\tgender as string,\n\t\tnationality as string,\n\t\tmarital_status as string,\n\t\toccupation as string,\n\t\tavg_family_size as integer,\n\t\tincome_level as string,\n\t\tdate_onboarded as timestamp,\n\t\tcreated_date as timestamp,\n\t\tupdated_date as timestamp,\n\t\teffective_start_date as timestamp,\n\t\teffective_end_date as timestamp,\n\t\tIdentifier_type as string,\n\t\tidentifier as string\n\t),\n\tallowSchemaDrift: false,\n\tvalidateSchema: false,\n\tignoreNoFilesFound: false,\n\tformat: 'parquet') ~> Customers\nsource(output(\n\t\taddress_id as long,\n\t\taddress_type as string,\n\t\taddress1 as string,\n\t\taddress2 as string,\n\t\taddress3 as string,\n\t\tcity as string,\n\t\tstate as string,\n\t\tcountry as string,\n\t\tzipcode as string,\n\t\tphone as string,\n\t\temail as string,\n\t\tFax as string,\n\t\tcustomer_id as long\n\t),\n\tallowSchemaDrift: false,\n\tvalidateSchema: false,\n\tignoreNoFilesFound: false,\n\tformat: 'parquet') ~> Addresses\nsource(output(\n\t\tproduct_id as long,\n\t\tproduct_name as string,\n\t\tproduct_type as string,\n\t\tproduct_description as string,\n\t\tissue_date as string,\n\t\tvalid_till_date as string,\n\t\taccount_status as string,\n\t\tcredit_card_limit as long,\n\t\tinterest_rate as double,\n\t\ttenure as long,\n\t\tservice_charges as long,\n\t\tcustomer_id as long,\n\t\tfd_principal_amount as long,\n\t\tloan_collateral_value as long,\n\t\tloan_amount as long\n\t),\n\tallowSchemaDrift: false,\n\tvalidateSchema: false,\n\tignoreNoFilesFound: false,\n\tformat: 'parquet') ~> source1\ncustomers1, Addresses join(customers1@customer_id == Addresses@customer_id,\n\tjoinType:'inner',\n\tbroadcast: 'auto')~> Join1\nJoin1 select(mapColumn(\n\t\tcustomer_id = customers1@customer_id,\n\t\tcountry,\n\t\tage = dob,\n\t\tgender\n\t),\n\tskipDuplicateMapInputs: true,\n\tskipDuplicateMapOutputs: true) ~> customerIDCountry\ncustomerIDCountry derive(credit_score = toInteger(random(1)*550 + 300),\n\t\tage = toInteger(monthsBetween(currentTimestamp(), age) / 12)) ~> DerivedColumn1\nCustomers aggregate(groupBy(customer_id,\n\t\tdob,\n\t\tgender),\n\tcount = count()) ~> customers1\nDerivedColumn1 sink(allowSchemaDrift: true,\n\tvalidateSchema: false,\n\tformat: 'parquet',\n\tumask: 0022,\n\tpreCommands: [],\n\tpostCommands: [],\n\tskipDuplicateMapInputs: true,\n\tskipDuplicateMapOutputs: true,\n\tsaveOrder: 1) ~> Churn"
 		}
 	}
 }
