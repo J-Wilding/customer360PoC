@@ -3,7 +3,7 @@
 	"properties": {
 		"activities": [
 			{
-				"name": "srsETL",
+				"name": "generateChurn",
 				"type": "ExecuteDataFlow",
 				"dependsOn": [],
 				"policy": {
@@ -16,7 +16,7 @@
 				"userProperties": [],
 				"typeProperties": {
 					"dataflow": {
-						"referenceName": "srsETL",
+						"referenceName": "generateChurn",
 						"type": "DataFlowReference"
 					},
 					"compute": {
