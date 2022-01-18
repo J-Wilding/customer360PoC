@@ -1,5 +1,5 @@
 {
-	"name": "pProductsErrors",
+	"name": "Products_errors",
 	"properties": {
 		"linkedServiceName": {
 			"referenceName": "wilding360datalake",

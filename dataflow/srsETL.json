@@ -50,7 +50,7 @@
 				},
 				{
 					"dataset": {
-						"referenceName": "pSrsErrors",
+						"referenceName": "Srs_errors",
 						"type": "DatasetReference"
 					},
 					"name": "srsErrors"

@@ -36,7 +36,7 @@
 				},
 				{
 					"dataset": {
-						"referenceName": "pProductsErrors",
+						"referenceName": "Products_errors",
 						"type": "DatasetReference"
 					},
 					"name": "productsErrors"

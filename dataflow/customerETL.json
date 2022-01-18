@@ -29,7 +29,7 @@
 				},
 				{
 					"dataset": {
-						"referenceName": "pCustomersErrors",
+						"referenceName": "Customers_errors",
 						"type": "DatasetReference"
 					},
 					"name": "CustomersErrors"

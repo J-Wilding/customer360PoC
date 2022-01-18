@@ -1,5 +1,5 @@
 {
-	"name": "pSrsErrors",
+	"name": "Srs_errors",
 	"properties": {
 		"linkedServiceName": {
 			"referenceName": "wilding360datalake",

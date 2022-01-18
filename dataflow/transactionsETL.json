@@ -50,7 +50,7 @@
 				},
 				{
 					"dataset": {
-						"referenceName": "pTransactionsErrors",
+						"referenceName": "Transactions_errors",
 						"type": "DatasetReference"
 					},
 					"name": "transactionsErrors"
