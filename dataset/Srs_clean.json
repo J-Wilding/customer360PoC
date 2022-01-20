@@ -18,6 +18,51 @@
 			},
 			"compressionCodec": "snappy"
 		},
-		"schema": []
+		"schema": [
+			{
+				"name": "sr_id",
+				"type": "INT64"
+			},
+			{
+				"name": "customer_id",
+				"type": "INT64"
+			},
+			{
+				"name": "product_id",
+				"type": "INT64"
+			},
+			{
+				"name": "sr_description",
+				"type": "UTF8"
+			},
+			{
+				"name": "sr_open_date",
+				"type": "INT96"
+			},
+			{
+				"name": "sr_close_date",
+				"type": "INT96"
+			},
+			{
+				"name": "sr_type",
+				"type": "UTF8"
+			},
+			{
+				"name": "channel",
+				"type": "UTF8"
+			},
+			{
+				"name": "sr_cust_feedback",
+				"type": "UTF8"
+			},
+			{
+				"name": "feedback_type",
+				"type": "UTF8"
+			},
+			{
+				"name": "feedback_severity",
+				"type": "UTF8"
+			}
+		]
 	}
 }
