@@ -7,6 +7,10 @@
 			"metadata": "Data Factory name",
 			"defaultValue": "wilding360DF"
 		},
+		"AzureDatabricks1_accessToken": {
+			"type": "secureString",
+			"metadata": "Secure string for 'accessToken' of 'AzureDatabricks1'"
+		},
 		"wilding360PoC_accessToken": {
 			"type": "secureString",
 			"metadata": "Secure string for 'accessToken' of 'wilding360PoC'"
@@ -31,7 +35,159 @@
 			"properties": {
 				"activities": [
 					{
-						"name": "customer360_ETL",
+						"name": "generateChurn",
+						"type": "ExecuteDataFlow",
+						"dependsOn": [
+							{
+								"activity": "ETL1",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"policy": {
+							"timeout": "1.00:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"dataflow": {
+								"referenceName": "generateChurn",
+								"type": "DataFlowReference",
+								"parameters": {},
+								"datasetParameters": {
+									"Customers": {},
+									"Addresses": {},
+									"cityStateCountry": {},
+									"Products": {},
+									"SRS": {},
+									"Transactions": {},
+									"Churn": {}
+								}
+							},
+							"staging": {},
+							"compute": {
+								"coreCount": 8,
+								"computeType": "General"
+							},
+							"traceLevel": "Fine"
+						}
+					},
+					{
+						"name": "cpCSVtoParquet",
+						"type": "ExecutePipeline",
+						"dependsOn": [],
+						"userProperties": [],
+						"typeProperties": {
+							"pipeline": {
+								"referenceName": "cpCSVtoParquet",
+								"type": "PipelineReference"
+							},
+							"waitOnCompletion": true,
+							"parameters": {}
+						}
+					},
+					{
+						"name": "UpdateDashboard",
+						"type": "DatabricksNotebook",
+						"dependsOn": [
+							{
+								"activity": "generateChurn",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"policy": {
+							"timeout": "7.00:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"notebookPath": "/Users/jonathan.wilding@hcl.com/Customer360PoC/churn_prediction"
+						},
+						"linkedServiceName": {
+							"referenceName": "AzureDatabricks1",
+							"type": "LinkedServiceReference"
+						}
+					},
+					{
+						"name": "ChurnPrediction",
+						"type": "DatabricksNotebook",
+						"dependsOn": [
+							{
+								"activity": "generateChurn",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"policy": {
+							"timeout": "7.00:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"notebookPath": "/Users/jonathan.wilding@hcl.com/Customer360PoC/churn_prediction"
+						},
+						"linkedServiceName": {
+							"referenceName": "AzureDatabricks1",
+							"type": "LinkedServiceReference"
+						}
+					},
+					{
+						"name": "ETL1",
+						"type": "ExecutePipeline",
+						"dependsOn": [
+							{
+								"activity": "cpCSVtoParquet",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"userProperties": [],
+						"typeProperties": {
+							"pipeline": {
+								"referenceName": "ETL",
+								"type": "PipelineReference"
+							},
+							"waitOnCompletion": true,
+							"parameters": {}
+						}
+					}
+				],
+				"policy": {
+					"elapsedTimeMetric": {},
+					"cancelAfter": {}
+				},
+				"annotations": [],
+				"lastPublishTime": "2022-01-07T21:36:38Z"
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/dataflows/generateChurn')]",
+				"[concat(variables('factoryId'), '/pipelines/cpCSVtoParquet')]",
+				"[concat(variables('factoryId'), '/linkedServices/AzureDatabricks1')]",
+				"[concat(variables('factoryId'), '/pipelines/ETL')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/ETL')]",
+			"type": "Microsoft.DataFactory/factories/pipelines",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"activities": [
+					{
+						"name": "addressesETL",
 						"type": "ExecuteDataFlow",
 						"dependsOn": [],
 						"policy": {
@@ -44,18 +200,178 @@
 						"userProperties": [],
 						"typeProperties": {
 							"dataflow": {
-								"referenceName": "customer360_ETL",
+								"referenceName": "addressesETL",
 								"type": "DataFlowReference",
 								"parameters": {},
 								"datasetParameters": {
 									"Addresses": {},
+									"Customers": {},
 									"CityStateCountry": {},
+									"AddressesClean": {},
+									"addressesErrors": {}
+								}
+							},
+							"staging": {},
+							"compute": {
+								"coreCount": 8,
+								"computeType": "General"
+							},
+							"traceLevel": "Fine"
+						}
+					},
+					{
+						"name": "customerETL",
+						"type": "ExecuteDataFlow",
+						"dependsOn": [
+							{
+								"activity": "addressesETL",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"policy": {
+							"timeout": "1.00:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"dataflow": {
+								"referenceName": "customerETL",
+								"type": "DataFlowReference",
+								"parameters": {},
+								"datasetParameters": {
+									"Customers": {},
+									"Occupations": {},
+									"CustomersClean": {},
+									"CustomersErrors": {}
+								}
+							},
+							"staging": {},
+							"compute": {
+								"coreCount": 8,
+								"computeType": "General"
+							},
+							"traceLevel": "Fine"
+						}
+					},
+					{
+						"name": "productsETL",
+						"type": "ExecuteDataFlow",
+						"dependsOn": [
+							{
+								"activity": "customerETL",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"policy": {
+							"timeout": "1.00:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"dataflow": {
+								"referenceName": "productsETL",
+								"type": "DataFlowReference",
+								"parameters": {},
+								"datasetParameters": {
 									"Customers": {},
 									"Products": {},
-									"AddressesClean": {},
-									"CustomersClean": {},
-									"Errors": {},
-									"ProductsClean": {}
+									"ProductNameTypeDescList": {},
+									"ProductsClean": {},
+									"productsErrors": {}
+								}
+							},
+							"staging": {},
+							"compute": {
+								"coreCount": 8,
+								"computeType": "General"
+							},
+							"traceLevel": "Fine"
+						}
+					},
+					{
+						"name": "transactionsETL",
+						"type": "ExecuteDataFlow",
+						"dependsOn": [
+							{
+								"activity": "productsETL",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"policy": {
+							"timeout": "1.00:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"dataflow": {
+								"referenceName": "transactionsETL",
+								"type": "DataFlowReference",
+								"parameters": {},
+								"datasetParameters": {
+									"Customers": {},
+									"Transactions": {},
+									"productIDs": {},
+									"merchants": {},
+									"channels": {},
+									"TransactionsClean": {},
+									"transactionsErrors": {}
+								}
+							},
+							"staging": {},
+							"compute": {
+								"coreCount": 8,
+								"computeType": "General"
+							},
+							"traceLevel": "Fine"
+						}
+					},
+					{
+						"name": "srsETL",
+						"type": "ExecuteDataFlow",
+						"dependsOn": [
+							{
+								"activity": "transactionsETL",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"policy": {
+							"timeout": "1.00:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"dataflow": {
+								"referenceName": "srsETL",
+								"type": "DataFlowReference",
+								"parameters": {},
+								"datasetParameters": {
+									"Customers": {},
+									"SRS": {},
+									"srTypes": {},
+									"productIDs": {},
+									"channels": {},
+									"SrsClean": {},
+									"srsErrors": {}
 								}
 							},
 							"staging": {},
@@ -71,11 +387,1365 @@
 					"elapsedTimeMetric": {},
 					"cancelAfter": {}
 				},
-				"annotations": [],
-				"lastPublishTime": "2022-01-07T21:36:38Z"
+				"annotations": []
 			},
 			"dependsOn": [
-				"[concat(variables('factoryId'), '/dataflows/customer360_ETL')]"
+				"[concat(variables('factoryId'), '/dataflows/addressesETL')]",
+				"[concat(variables('factoryId'), '/dataflows/customerETL')]",
+				"[concat(variables('factoryId'), '/dataflows/productsETL')]",
+				"[concat(variables('factoryId'), '/dataflows/transactionsETL')]",
+				"[concat(variables('factoryId'), '/dataflows/srsETL')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/cpCSVtoParquet')]",
+			"type": "Microsoft.DataFactory/factories/pipelines",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"activities": [
+					{
+						"name": "Copy Transactions",
+						"type": "Copy",
+						"dependsOn": [
+							{
+								"activity": "Copy Customers",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"policy": {
+							"timeout": "7.00:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"source": {
+								"type": "DelimitedTextSource",
+								"storeSettings": {
+									"type": "AzureBlobFSReadSettings",
+									"recursive": false,
+									"enablePartitionDiscovery": false
+								},
+								"formatSettings": {
+									"type": "DelimitedTextReadSettings"
+								}
+							},
+							"sink": {
+								"type": "ParquetSink",
+								"storeSettings": {
+									"type": "AzureBlobFSWriteSettings"
+								},
+								"formatSettings": {
+									"type": "ParquetWriteSettings"
+								}
+							},
+							"enableStaging": false,
+							"translator": {
+								"type": "TabularTranslator",
+								"mappings": [
+									{
+										"source": {
+											"name": "transaction_id",
+											"type": "Int64",
+											"physicalType": "String"
+										},
+										"sink": {
+											"name": "transaction_id",
+											"type": "String",
+											"physicalType": "UTF8"
+										}
+									},
+									{
+										"source": {
+											"name": "customer_id",
+											"type": "Int64",
+											"physicalType": "String"
+										},
+										"sink": {
+											"name": "customer_id",
+											"type": "String",
+											"physicalType": "UTF8"
+										}
+									},
+									{
+										"source": {
+											"name": "product_id",
+											"type": "Int64",
+											"physicalType": "String"
+										},
+										"sink": {
+											"name": "product_id",
+											"type": "String",
+											"physicalType": "UTF8"
+										}
+									},
+									{
+										"source": {
+											"name": "merchant_name",
+											"type": "String",
+											"physicalType": "String"
+										},
+										"sink": {
+											"name": "merchant_name",
+											"type": "String",
+											"physicalType": "UTF8"
+										}
+									},
+									{
+										"source": {
+											"name": "transaction_description",
+											"type": "String",
+											"physicalType": "String"
+										},
+										"sink": {
+											"name": "transaction_description",
+											"type": "String",
+											"physicalType": "UTF8"
+										}
+									},
+									{
+										"source": {
+											"name": "transaction_amount",
+											"type": "Int64",
+											"physicalType": "String"
+										},
+										"sink": {
+											"name": "transaction_amount",
+											"type": "String",
+											"physicalType": "UTF8"
+										}
+									},
+									{
+										"source": {
+											"name": "type_deposit_withdrawal",
+											"type": "String",
+											"physicalType": "String"
+										},
+										"sink": {
+											"name": "type_deposit_withdrawal",
+											"type": "String",
+											"physicalType": "UTF8"
+										}
+									},
+									{
+										"source": {
+											"name": "transaction_date",
+											"type": "DateTime",
+											"physicalType": "String"
+										},
+										"sink": {
+											"name": "transaction_date",
+											"type": "String",
+											"physicalType": "UTF8"
+										}
+									},
+									{
+										"source": {
+											"name": "channel",
+											"type": "String",
+											"physicalType": "String"
+										},
+										"sink": {
+											"name": "channel",
+											"type": "String",
+											"physicalType": "UTF8"
+										}
+									}
+								],
+								"typeConversion": true,
+								"typeConversionSettings": {
+									"allowDataTruncation": true,
+									"treatBooleanAsNumber": false
+								}
+							}
+						},
+						"inputs": [
+							{
+								"referenceName": "cTransactions",
+								"type": "DatasetReference",
+								"parameters": {}
+							}
+						],
+						"outputs": [
+							{
+								"referenceName": "Transactions",
+								"type": "DatasetReference",
+								"parameters": {}
+							}
+						]
+					},
+					{
+						"name": "Copy Addresses",
+						"type": "Copy",
+						"dependsOn": [],
+						"policy": {
+							"timeout": "7.00:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"source": {
+								"type": "DelimitedTextSource",
+								"storeSettings": {
+									"type": "AzureBlobFSReadSettings",
+									"recursive": false,
+									"enablePartitionDiscovery": false
+								},
+								"formatSettings": {
+									"type": "DelimitedTextReadSettings"
+								}
+							},
+							"sink": {
+								"type": "ParquetSink",
+								"storeSettings": {
+									"type": "AzureBlobFSWriteSettings"
+								},
+								"formatSettings": {
+									"type": "ParquetWriteSettings"
+								}
+							},
+							"enableStaging": false,
+							"translator": {
+								"type": "TabularTranslator",
+								"mappings": [
+									{
+										"source": {
+											"name": "address_id",
+											"type": "Int64",
+											"physicalType": "String"
+										},
+										"sink": {
+											"name": "address_id",
+											"type": "String",
+											"physicalType": "UTF8"
+										}
+									},
+									{
+										"source": {
+											"name": "address_type",
+											"type": "String",
+											"physicalType": "String"
+										},
+										"sink": {
+											"name": "address_type",
+											"type": "String",
+											"physicalType": "UTF8"
+										}
+									},
+									{
+										"source": {
+											"name": "address1",
+											"type": "String",
+											"physicalType": "String"
+										},
+										"sink": {
+											"name": "address1",
+											"type": "String",
+											"physicalType": "UTF8"
+										}
+									},
+									{
+										"source": {
+											"name": "address2",
+											"type": "String",
+											"physicalType": "String"
+										},
+										"sink": {
+											"name": "address2",
+											"type": "String",
+											"physicalType": "UTF8"
+										}
+									},
+									{
+										"source": {
+											"name": "address3",
+											"type": "String",
+											"physicalType": "String"
+										},
+										"sink": {
+											"name": "address3",
+											"type": "String",
+											"physicalType": "UTF8"
+										}
+									},
+									{
+										"source": {
+											"name": "city",
+											"type": "String",
+											"physicalType": "String"
+										},
+										"sink": {
+											"name": "city",
+											"type": "String",
+											"physicalType": "UTF8"
+										}
+									},
+									{
+										"source": {
+											"name": "state",
+											"type": "String",
+											"physicalType": "String"
+										},
+										"sink": {
+											"name": "state",
+											"type": "String",
+											"physicalType": "UTF8"
+										}
+									},
+									{
+										"source": {
+											"name": "country",
+											"type": "String",
+											"physicalType": "String"
+										},
+										"sink": {
+											"name": "country",
+											"type": "String",
+											"physicalType": "UTF8"
+										}
+									},
+									{
+										"source": {
+											"name": "zipcode",
+											"type": "String",
+											"physicalType": "String"
+										},
+										"sink": {
+											"name": "zipcode",
+											"type": "String",
+											"physicalType": "UTF8"
+										}
+									},
+									{
+										"source": {
+											"name": "phone",
+											"type": "String",
+											"physicalType": "String"
+										},
+										"sink": {
+											"name": "phone",
+											"type": "String",
+											"physicalType": "UTF8"
+										}
+									},
+									{
+										"source": {
+											"name": "email",
+											"type": "String",
+											"physicalType": "String"
+										},
+										"sink": {
+											"name": "email",
+											"type": "String",
+											"physicalType": "UTF8"
+										}
+									},
+									{
+										"source": {
+											"name": "Fax",
+											"type": "String",
+											"physicalType": "String"
+										},
+										"sink": {
+											"name": "Fax",
+											"type": "String",
+											"physicalType": "UTF8"
+										}
+									},
+									{
+										"source": {
+											"name": "customer_id",
+											"type": "Int64",
+											"physicalType": "String"
+										},
+										"sink": {
+											"name": "customer_id",
+											"type": "String",
+											"physicalType": "UTF8"
+										}
+									}
+								],
+								"typeConversion": true,
+								"typeConversionSettings": {
+									"allowDataTruncation": true,
+									"treatBooleanAsNumber": false
+								}
+							}
+						},
+						"inputs": [
+							{
+								"referenceName": "cAddresses",
+								"type": "DatasetReference",
+								"parameters": {}
+							}
+						],
+						"outputs": [
+							{
+								"referenceName": "Addresses",
+								"type": "DatasetReference",
+								"parameters": {}
+							}
+						]
+					},
+					{
+						"name": "Copy Customers",
+						"type": "Copy",
+						"dependsOn": [
+							{
+								"activity": "Copy Addresses",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"policy": {
+							"timeout": "7.00:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"source": {
+								"type": "DelimitedTextSource",
+								"storeSettings": {
+									"type": "AzureBlobFSReadSettings",
+									"recursive": false,
+									"enablePartitionDiscovery": false
+								},
+								"formatSettings": {
+									"type": "DelimitedTextReadSettings"
+								}
+							},
+							"sink": {
+								"type": "ParquetSink",
+								"storeSettings": {
+									"type": "AzureBlobFSWriteSettings"
+								},
+								"formatSettings": {
+									"type": "ParquetWriteSettings"
+								}
+							},
+							"enableStaging": false,
+							"translator": {
+								"type": "TabularTranslator",
+								"mappings": [
+									{
+										"source": {
+											"name": "customer_id",
+											"type": "Int64",
+											"physicalType": "String"
+										},
+										"sink": {
+											"name": "customer_id",
+											"type": "String",
+											"physicalType": "UTF8"
+										}
+									},
+									{
+										"source": {
+											"name": "source_id",
+											"type": "String",
+											"physicalType": "String"
+										},
+										"sink": {
+											"name": "source_id",
+											"type": "String",
+											"physicalType": "UTF8"
+										}
+									},
+									{
+										"source": {
+											"name": "first_name",
+											"type": "String",
+											"physicalType": "String"
+										},
+										"sink": {
+											"name": "first_name",
+											"type": "String",
+											"physicalType": "UTF8"
+										}
+									},
+									{
+										"source": {
+											"name": "middle_name",
+											"type": "String",
+											"physicalType": "String"
+										},
+										"sink": {
+											"name": "middle_name",
+											"type": "String",
+											"physicalType": "UTF8"
+										}
+									},
+									{
+										"source": {
+											"name": "last_name",
+											"type": "String",
+											"physicalType": "String"
+										},
+										"sink": {
+											"name": "last_name",
+											"type": "String",
+											"physicalType": "UTF8"
+										}
+									},
+									{
+										"source": {
+											"name": "dob",
+											"type": "DateTime",
+											"physicalType": "String"
+										},
+										"sink": {
+											"name": "dob",
+											"type": "String",
+											"physicalType": "UTF8"
+										}
+									},
+									{
+										"source": {
+											"name": "gender",
+											"type": "String",
+											"physicalType": "String"
+										},
+										"sink": {
+											"name": "gender",
+											"type": "String",
+											"physicalType": "UTF8"
+										}
+									},
+									{
+										"source": {
+											"name": "nationality",
+											"type": "String",
+											"physicalType": "String"
+										},
+										"sink": {
+											"name": "nationality",
+											"type": "String",
+											"physicalType": "UTF8"
+										}
+									},
+									{
+										"source": {
+											"name": "marital_status",
+											"type": "String",
+											"physicalType": "String"
+										},
+										"sink": {
+											"name": "marital_status",
+											"type": "String",
+											"physicalType": "UTF8"
+										}
+									},
+									{
+										"source": {
+											"name": "occupation",
+											"type": "String",
+											"physicalType": "String"
+										},
+										"sink": {
+											"name": "occupation",
+											"type": "String",
+											"physicalType": "UTF8"
+										}
+									},
+									{
+										"source": {
+											"name": "avg_family_size",
+											"type": "Int16",
+											"physicalType": "String"
+										},
+										"sink": {
+											"name": "avg_family_size",
+											"type": "String",
+											"physicalType": "UTF8"
+										}
+									},
+									{
+										"source": {
+											"name": "income_level",
+											"type": "String",
+											"physicalType": "String"
+										},
+										"sink": {
+											"name": "income_level",
+											"type": "String",
+											"physicalType": "UTF8"
+										}
+									},
+									{
+										"source": {
+											"name": "date_onboarded",
+											"type": "DateTime",
+											"physicalType": "String"
+										},
+										"sink": {
+											"name": "date_onboarded",
+											"type": "String",
+											"physicalType": "UTF8"
+										}
+									},
+									{
+										"source": {
+											"name": "created_date",
+											"type": "DateTime",
+											"physicalType": "String"
+										},
+										"sink": {
+											"name": "created_date",
+											"type": "String",
+											"physicalType": "UTF8"
+										}
+									},
+									{
+										"source": {
+											"name": "updated_date",
+											"type": "DateTime",
+											"physicalType": "String"
+										},
+										"sink": {
+											"name": "updated_date",
+											"type": "String",
+											"physicalType": "UTF8"
+										}
+									},
+									{
+										"source": {
+											"name": "effective_start_date",
+											"type": "DateTime",
+											"physicalType": "String"
+										},
+										"sink": {
+											"name": "effective_start_date",
+											"type": "String",
+											"physicalType": "UTF8"
+										}
+									},
+									{
+										"source": {
+											"name": "effective_end_date",
+											"type": "DateTime",
+											"physicalType": "String"
+										},
+										"sink": {
+											"name": "effective_end_date",
+											"type": "String",
+											"physicalType": "UTF8"
+										}
+									},
+									{
+										"source": {
+											"name": "Identifier_type",
+											"type": "String",
+											"physicalType": "String"
+										},
+										"sink": {
+											"name": "Identifier_type",
+											"type": "String",
+											"physicalType": "UTF8"
+										}
+									},
+									{
+										"source": {
+											"name": "identifier",
+											"type": "String",
+											"physicalType": "String"
+										},
+										"sink": {
+											"name": "identifier",
+											"type": "String",
+											"physicalType": "UTF8"
+										}
+									}
+								],
+								"typeConversion": true,
+								"typeConversionSettings": {
+									"allowDataTruncation": true,
+									"treatBooleanAsNumber": false
+								}
+							}
+						},
+						"inputs": [
+							{
+								"referenceName": "cCustomers",
+								"type": "DatasetReference",
+								"parameters": {}
+							}
+						],
+						"outputs": [
+							{
+								"referenceName": "Customers",
+								"type": "DatasetReference",
+								"parameters": {}
+							}
+						]
+					},
+					{
+						"name": "Copy Products",
+						"type": "Copy",
+						"dependsOn": [
+							{
+								"activity": "Copy Transactions",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"policy": {
+							"timeout": "7.00:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"source": {
+								"type": "DelimitedTextSource",
+								"storeSettings": {
+									"type": "AzureBlobFSReadSettings",
+									"recursive": false,
+									"enablePartitionDiscovery": false
+								},
+								"formatSettings": {
+									"type": "DelimitedTextReadSettings"
+								}
+							},
+							"sink": {
+								"type": "ParquetSink",
+								"storeSettings": {
+									"type": "AzureBlobFSWriteSettings"
+								},
+								"formatSettings": {
+									"type": "ParquetWriteSettings"
+								}
+							},
+							"enableStaging": false,
+							"translator": {
+								"type": "TabularTranslator",
+								"mappings": [
+									{
+										"source": {
+											"name": "product_id",
+											"type": "Int64",
+											"physicalType": "String"
+										},
+										"sink": {
+											"name": "product_id",
+											"type": "String",
+											"physicalType": "UTF8"
+										}
+									},
+									{
+										"source": {
+											"name": "product_name",
+											"type": "String",
+											"physicalType": "String"
+										},
+										"sink": {
+											"name": "product_name",
+											"type": "String",
+											"physicalType": "UTF8"
+										}
+									},
+									{
+										"source": {
+											"name": "product_type",
+											"type": "String",
+											"physicalType": "String"
+										},
+										"sink": {
+											"name": "product_type",
+											"type": "String",
+											"physicalType": "UTF8"
+										}
+									},
+									{
+										"source": {
+											"name": "product_description",
+											"type": "String",
+											"physicalType": "String"
+										},
+										"sink": {
+											"name": "product_description",
+											"type": "String",
+											"physicalType": "UTF8"
+										}
+									},
+									{
+										"source": {
+											"name": "issue_date",
+											"type": "DateTime",
+											"physicalType": "String"
+										},
+										"sink": {
+											"name": "issue_date",
+											"type": "String",
+											"physicalType": "UTF8"
+										}
+									},
+									{
+										"source": {
+											"name": "valid_till_date",
+											"type": "DateTime",
+											"physicalType": "String"
+										},
+										"sink": {
+											"name": "valid_till_date",
+											"type": "String",
+											"physicalType": "UTF8"
+										}
+									},
+									{
+										"source": {
+											"name": "account_status",
+											"type": "String",
+											"physicalType": "String"
+										},
+										"sink": {
+											"name": "account_status",
+											"type": "String",
+											"physicalType": "UTF8"
+										}
+									},
+									{
+										"source": {
+											"name": "credit_card_limit",
+											"type": "Int64",
+											"physicalType": "String"
+										},
+										"sink": {
+											"name": "credit_card_limit",
+											"type": "String",
+											"physicalType": "UTF8"
+										}
+									},
+									{
+										"source": {
+											"name": "interest_rate",
+											"type": "Double",
+											"physicalType": "String"
+										},
+										"sink": {
+											"name": "interest_rate",
+											"type": "String",
+											"physicalType": "UTF8"
+										}
+									},
+									{
+										"source": {
+											"name": "tenure",
+											"type": "Int64",
+											"physicalType": "String"
+										},
+										"sink": {
+											"name": "tenure",
+											"type": "String",
+											"physicalType": "UTF8"
+										}
+									},
+									{
+										"source": {
+											"name": "service_charges",
+											"type": "Int64",
+											"physicalType": "String"
+										},
+										"sink": {
+											"name": "service_charges",
+											"type": "String",
+											"physicalType": "UTF8"
+										}
+									},
+									{
+										"source": {
+											"name": "customer_id",
+											"type": "Int64",
+											"physicalType": "String"
+										},
+										"sink": {
+											"name": "customer_id",
+											"type": "String",
+											"physicalType": "UTF8"
+										}
+									},
+									{
+										"source": {
+											"name": "fd_principal_amount",
+											"type": "Int64",
+											"physicalType": "String"
+										},
+										"sink": {
+											"name": "fd_principal_amount",
+											"type": "String",
+											"physicalType": "UTF8"
+										}
+									},
+									{
+										"source": {
+											"name": "loan_collateral_value",
+											"type": "Int64",
+											"physicalType": "String"
+										},
+										"sink": {
+											"name": "loan_collateral_value",
+											"type": "String",
+											"physicalType": "UTF8"
+										}
+									},
+									{
+										"source": {
+											"name": "loan_amount",
+											"type": "Int64",
+											"physicalType": "String"
+										},
+										"sink": {
+											"name": "loan_amount",
+											"type": "String",
+											"physicalType": "UTF8"
+										}
+									}
+								],
+								"typeConversion": true,
+								"typeConversionSettings": {
+									"allowDataTruncation": true,
+									"treatBooleanAsNumber": false
+								}
+							}
+						},
+						"inputs": [
+							{
+								"referenceName": "cProducts",
+								"type": "DatasetReference",
+								"parameters": {}
+							}
+						],
+						"outputs": [
+							{
+								"referenceName": "Products",
+								"type": "DatasetReference",
+								"parameters": {}
+							}
+						]
+					},
+					{
+						"name": "Copy SRS",
+						"type": "Copy",
+						"dependsOn": [
+							{
+								"activity": "Copy Products",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"policy": {
+							"timeout": "7.00:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"source": {
+								"type": "DelimitedTextSource",
+								"storeSettings": {
+									"type": "AzureBlobFSReadSettings",
+									"recursive": false,
+									"enablePartitionDiscovery": false
+								},
+								"formatSettings": {
+									"type": "DelimitedTextReadSettings"
+								}
+							},
+							"sink": {
+								"type": "ParquetSink",
+								"storeSettings": {
+									"type": "AzureBlobFSWriteSettings"
+								},
+								"formatSettings": {
+									"type": "ParquetWriteSettings"
+								}
+							},
+							"enableStaging": false,
+							"translator": {
+								"type": "TabularTranslator",
+								"mappings": [
+									{
+										"source": {
+											"name": "sr_id",
+											"type": "Int64",
+											"physicalType": "String"
+										},
+										"sink": {
+											"name": "sr_id",
+											"type": "String",
+											"physicalType": "UTF8"
+										}
+									},
+									{
+										"source": {
+											"name": "customer_id",
+											"type": "Int64",
+											"physicalType": "String"
+										},
+										"sink": {
+											"name": "customer_id",
+											"type": "String",
+											"physicalType": "UTF8"
+										}
+									},
+									{
+										"source": {
+											"name": "product_id",
+											"type": "Int64",
+											"physicalType": "String"
+										},
+										"sink": {
+											"name": "product_id",
+											"type": "String",
+											"physicalType": "UTF8"
+										}
+									},
+									{
+										"source": {
+											"name": "sr_description",
+											"type": "String",
+											"physicalType": "String"
+										},
+										"sink": {
+											"name": "sr_description",
+											"type": "String",
+											"physicalType": "UTF8"
+										}
+									},
+									{
+										"source": {
+											"name": "sr_open_date",
+											"type": "DateTime",
+											"physicalType": "String"
+										},
+										"sink": {
+											"name": "sr_open_date",
+											"type": "String",
+											"physicalType": "UTF8"
+										}
+									},
+									{
+										"source": {
+											"name": "sr_close_date",
+											"type": "DateTime",
+											"physicalType": "String"
+										},
+										"sink": {
+											"name": "sr_close_date",
+											"type": "String",
+											"physicalType": "UTF8"
+										}
+									},
+									{
+										"source": {
+											"name": "sr_type",
+											"type": "String",
+											"physicalType": "String"
+										},
+										"sink": {
+											"name": "sr_type",
+											"type": "String",
+											"physicalType": "UTF8"
+										}
+									},
+									{
+										"source": {
+											"name": "channel",
+											"type": "String",
+											"physicalType": "String"
+										},
+										"sink": {
+											"name": "channel",
+											"type": "String",
+											"physicalType": "UTF8"
+										}
+									},
+									{
+										"source": {
+											"name": "sr_cust_feedback",
+											"type": "String",
+											"physicalType": "String"
+										},
+										"sink": {
+											"name": "sr_cust_feedback",
+											"type": "String",
+											"physicalType": "UTF8"
+										}
+									}
+								],
+								"typeConversion": true,
+								"typeConversionSettings": {
+									"allowDataTruncation": true,
+									"treatBooleanAsNumber": false
+								}
+							}
+						},
+						"inputs": [
+							{
+								"referenceName": "cSRS",
+								"type": "DatasetReference",
+								"parameters": {}
+							}
+						],
+						"outputs": [
+							{
+								"referenceName": "SRS",
+								"type": "DatasetReference",
+								"parameters": {}
+							}
+						]
+					}
+				],
+				"policy": {
+					"elapsedTimeMetric": {},
+					"cancelAfter": {}
+				},
+				"annotations": []
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/datasets/cTransactions')]",
+				"[concat(variables('factoryId'), '/datasets/Transactions')]",
+				"[concat(variables('factoryId'), '/datasets/cAddresses')]",
+				"[concat(variables('factoryId'), '/datasets/Addresses')]",
+				"[concat(variables('factoryId'), '/datasets/cCustomers')]",
+				"[concat(variables('factoryId'), '/datasets/Customers')]",
+				"[concat(variables('factoryId'), '/datasets/cProducts')]",
+				"[concat(variables('factoryId'), '/datasets/Products')]",
+				"[concat(variables('factoryId'), '/datasets/cSRS')]",
+				"[concat(variables('factoryId'), '/datasets/SRS')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/genAuxFiles')]",
+			"type": "Microsoft.DataFactory/factories/pipelines",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"activities": [
+					{
+						"name": "srsAuxLists",
+						"type": "ExecuteDataFlow",
+						"dependsOn": [
+							{
+								"activity": "productsAuxLists",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"policy": {
+							"timeout": "1.00:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"dataflow": {
+								"referenceName": "srsAuxLists",
+								"type": "DataFlowReference",
+								"parameters": {},
+								"datasetParameters": {
+									"srs": {},
+									"channels": {},
+									"srTypes": {}
+								}
+							},
+							"staging": {},
+							"compute": {
+								"coreCount": 8,
+								"computeType": "General"
+							},
+							"traceLevel": "Fine"
+						}
+					},
+					{
+						"name": "transactionsAuxList",
+						"type": "ExecuteDataFlow",
+						"dependsOn": [
+							{
+								"activity": "srsAuxLists",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"policy": {
+							"timeout": "1.00:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"dataflow": {
+								"referenceName": "transactionsAuxList",
+								"type": "DataFlowReference",
+								"parameters": {},
+								"datasetParameters": {
+									"source1": {},
+									"sink1": {}
+								}
+							},
+							"staging": {},
+							"compute": {
+								"coreCount": 8,
+								"computeType": "General"
+							},
+							"traceLevel": "Fine"
+						}
+					},
+					{
+						"name": "customerAuxLists",
+						"type": "ExecuteDataFlow",
+						"dependsOn": [],
+						"policy": {
+							"timeout": "1.00:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"dataflow": {
+								"referenceName": "customerAuxLists",
+								"type": "DataFlowReference",
+								"parameters": {},
+								"datasetParameters": {
+									"Customers": {},
+									"Occupations": {},
+									"CustomerIDs": {}
+								}
+							},
+							"staging": {},
+							"compute": {
+								"coreCount": 8,
+								"computeType": "General"
+							},
+							"traceLevel": "Fine"
+						}
+					},
+					{
+						"name": "productsAuxLists",
+						"type": "ExecuteDataFlow",
+						"dependsOn": [
+							{
+								"activity": "customerAuxLists",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"policy": {
+							"timeout": "1.00:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"dataflow": {
+								"referenceName": "productsAuxLists",
+								"type": "DataFlowReference",
+								"parameters": {},
+								"datasetParameters": {
+									"Products": {},
+									"ProductNameTypeDesc": {},
+									"productIDs": {},
+									"sink1": {}
+								}
+							},
+							"staging": {},
+							"compute": {
+								"coreCount": 8,
+								"computeType": "General"
+							},
+							"traceLevel": "Fine"
+						}
+					}
+				],
+				"policy": {
+					"elapsedTimeMetric": {},
+					"cancelAfter": {}
+				},
+				"annotations": []
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/dataflows/srsAuxLists')]",
+				"[concat(variables('factoryId'), '/dataflows/transactionsAuxList')]",
+				"[concat(variables('factoryId'), '/dataflows/customerAuxLists')]",
+				"[concat(variables('factoryId'), '/dataflows/productsAuxLists')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/pipeline1')]",
+			"type": "Microsoft.DataFactory/factories/pipelines",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"activities": [
+					{
+						"name": "generateChurn",
+						"type": "ExecuteDataFlow",
+						"dependsOn": [],
+						"policy": {
+							"timeout": "1.00:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"dataflow": {
+								"referenceName": "generateChurn",
+								"type": "DataFlowReference",
+								"parameters": {},
+								"datasetParameters": {
+									"Customers": {},
+									"Addresses": {},
+									"cityStateCountry": {},
+									"Products": {},
+									"SRS": {},
+									"Transactions": {},
+									"Churn": {}
+								}
+							},
+							"staging": {},
+							"compute": {
+								"coreCount": 8,
+								"computeType": "General"
+							},
+							"traceLevel": "Fine"
+						}
+					}
+				],
+				"policy": {
+					"elapsedTimeMetric": {},
+					"cancelAfter": {}
+				},
+				"annotations": []
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/dataflows/generateChurn')]"
 			]
 		},
 		{
@@ -89,6 +1759,576 @@
 				},
 				"folder": {
 					"name": "Raw"
+				},
+				"annotations": [],
+				"type": "Parquet",
+				"typeProperties": {
+					"location": {
+						"type": "AzureBlobFSLocation",
+						"folderPath": "Parquet/addresses",
+						"fileSystem": "raw"
+					},
+					"compressionCodec": "snappy"
+				},
+				"schema": []
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/linkedServices/wilding360datalake')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/Addresses_clean')]",
+			"type": "Microsoft.DataFactory/factories/datasets",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"linkedServiceName": {
+					"referenceName": "wilding360datalake",
+					"type": "LinkedServiceReference"
+				},
+				"folder": {
+					"name": "Clean"
+				},
+				"annotations": [],
+				"type": "Parquet",
+				"typeProperties": {
+					"location": {
+						"type": "AzureBlobFSLocation",
+						"folderPath": "addresses",
+						"fileSystem": "clean"
+					},
+					"compressionCodec": "snappy"
+				},
+				"schema": []
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/linkedServices/wilding360datalake')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/Addresses_errors')]",
+			"type": "Microsoft.DataFactory/factories/datasets",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"linkedServiceName": {
+					"referenceName": "wilding360datalake",
+					"type": "LinkedServiceReference"
+				},
+				"folder": {
+					"name": "Errors"
+				},
+				"annotations": [],
+				"type": "Parquet",
+				"typeProperties": {
+					"location": {
+						"type": "AzureBlobFSLocation",
+						"folderPath": "addresses",
+						"fileSystem": "errors"
+					},
+					"compressionCodec": "snappy"
+				},
+				"schema": []
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/linkedServices/wilding360datalake')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/Churn')]",
+			"type": "Microsoft.DataFactory/factories/datasets",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"linkedServiceName": {
+					"referenceName": "wilding360datalake",
+					"type": "LinkedServiceReference"
+				},
+				"annotations": [],
+				"type": "Parquet",
+				"typeProperties": {
+					"location": {
+						"type": "AzureBlobFSLocation",
+						"folderPath": "churn",
+						"fileSystem": "clean"
+					},
+					"compressionCodec": "snappy"
+				},
+				"schema": [
+					{
+						"name": "customer_id",
+						"type": "INT64"
+					},
+					{
+						"name": "credit_score",
+						"type": "INT32"
+					},
+					{
+						"name": "country",
+						"type": "UTF8"
+					},
+					{
+						"name": "gender",
+						"type": "UTF8"
+					},
+					{
+						"name": "age",
+						"type": "INT32"
+					},
+					{
+						"name": "tenure",
+						"type": "INT64"
+					},
+					{
+						"name": "deposits",
+						"type": "INT64"
+					},
+					{
+						"name": "withdrawls",
+						"type": "INT64"
+					},
+					{
+						"name": "number_of_products",
+						"type": "INT64"
+					},
+					{
+						"name": "has_credit_card",
+						"type": "BOOLEAN"
+					},
+					{
+						"name": "avg_feedback_score",
+						"type": "DOUBLE"
+					},
+					{
+						"name": "is_active",
+						"type": "BOOLEAN"
+					},
+					{
+						"name": "exited",
+						"type": "BOOLEAN"
+					}
+				]
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/linkedServices/wilding360datalake')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/Customers')]",
+			"type": "Microsoft.DataFactory/factories/datasets",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"linkedServiceName": {
+					"referenceName": "wilding360datalake",
+					"type": "LinkedServiceReference"
+				},
+				"folder": {
+					"name": "Raw"
+				},
+				"annotations": [],
+				"type": "Parquet",
+				"typeProperties": {
+					"location": {
+						"type": "AzureBlobFSLocation",
+						"folderPath": "Parquet/customers",
+						"fileSystem": "raw"
+					},
+					"compressionCodec": "snappy"
+				},
+				"schema": []
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/linkedServices/wilding360datalake')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/Customers_clean')]",
+			"type": "Microsoft.DataFactory/factories/datasets",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"linkedServiceName": {
+					"referenceName": "wilding360datalake",
+					"type": "LinkedServiceReference"
+				},
+				"folder": {
+					"name": "Clean"
+				},
+				"annotations": [],
+				"type": "Parquet",
+				"typeProperties": {
+					"location": {
+						"type": "AzureBlobFSLocation",
+						"folderPath": "customers",
+						"fileSystem": "clean"
+					},
+					"compressionCodec": "snappy"
+				},
+				"schema": []
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/linkedServices/wilding360datalake')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/Customers_errors')]",
+			"type": "Microsoft.DataFactory/factories/datasets",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"linkedServiceName": {
+					"referenceName": "wilding360datalake",
+					"type": "LinkedServiceReference"
+				},
+				"folder": {
+					"name": "Errors"
+				},
+				"annotations": [],
+				"type": "Parquet",
+				"typeProperties": {
+					"location": {
+						"type": "AzureBlobFSLocation",
+						"folderPath": "customers",
+						"fileSystem": "errors"
+					},
+					"compressionCodec": "snappy"
+				},
+				"schema": []
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/linkedServices/wilding360datalake')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/ProductIDsCSVTest')]",
+			"type": "Microsoft.DataFactory/factories/datasets",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"linkedServiceName": {
+					"referenceName": "wilding360datalake",
+					"type": "LinkedServiceReference"
+				},
+				"annotations": [],
+				"type": "DelimitedText",
+				"typeProperties": {
+					"location": {
+						"type": "AzureBlobFSLocation",
+						"fileSystem": "auxiliary-tables"
+					},
+					"columnDelimiter": ",",
+					"escapeChar": "\\",
+					"firstRowAsHeader": true,
+					"quoteChar": "\""
+				},
+				"schema": []
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/linkedServices/wilding360datalake')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/Products')]",
+			"type": "Microsoft.DataFactory/factories/datasets",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"linkedServiceName": {
+					"referenceName": "wilding360datalake",
+					"type": "LinkedServiceReference"
+				},
+				"folder": {
+					"name": "Raw"
+				},
+				"annotations": [],
+				"type": "Parquet",
+				"typeProperties": {
+					"location": {
+						"type": "AzureBlobFSLocation",
+						"folderPath": "Parquet/products",
+						"fileSystem": "raw"
+					},
+					"compressionCodec": "snappy"
+				},
+				"schema": []
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/linkedServices/wilding360datalake')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/Products_clean')]",
+			"type": "Microsoft.DataFactory/factories/datasets",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"linkedServiceName": {
+					"referenceName": "wilding360datalake",
+					"type": "LinkedServiceReference"
+				},
+				"folder": {
+					"name": "Clean"
+				},
+				"annotations": [],
+				"type": "Parquet",
+				"typeProperties": {
+					"location": {
+						"type": "AzureBlobFSLocation",
+						"folderPath": "products",
+						"fileSystem": "clean"
+					},
+					"compressionCodec": "snappy"
+				},
+				"schema": []
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/linkedServices/wilding360datalake')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/Products_errors')]",
+			"type": "Microsoft.DataFactory/factories/datasets",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"linkedServiceName": {
+					"referenceName": "wilding360datalake",
+					"type": "LinkedServiceReference"
+				},
+				"folder": {
+					"name": "Errors"
+				},
+				"annotations": [],
+				"type": "Parquet",
+				"typeProperties": {
+					"location": {
+						"type": "AzureBlobFSLocation",
+						"folderPath": "products",
+						"fileSystem": "errors"
+					},
+					"compressionCodec": "snappy"
+				},
+				"schema": []
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/linkedServices/wilding360datalake')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/SRS')]",
+			"type": "Microsoft.DataFactory/factories/datasets",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"linkedServiceName": {
+					"referenceName": "wilding360datalake",
+					"type": "LinkedServiceReference"
+				},
+				"folder": {
+					"name": "Raw"
+				},
+				"annotations": [],
+				"type": "Parquet",
+				"typeProperties": {
+					"location": {
+						"type": "AzureBlobFSLocation",
+						"folderPath": "Parquet/srs",
+						"fileSystem": "raw"
+					},
+					"compressionCodec": "snappy"
+				},
+				"schema": []
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/linkedServices/wilding360datalake')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/Srs_clean')]",
+			"type": "Microsoft.DataFactory/factories/datasets",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"linkedServiceName": {
+					"referenceName": "wilding360datalake",
+					"type": "LinkedServiceReference"
+				},
+				"folder": {
+					"name": "Clean"
+				},
+				"annotations": [],
+				"type": "Parquet",
+				"typeProperties": {
+					"location": {
+						"type": "AzureBlobFSLocation",
+						"folderPath": "srs",
+						"fileSystem": "clean"
+					},
+					"compressionCodec": "snappy"
+				},
+				"schema": [
+					{
+						"name": "sr_id",
+						"type": "INT64"
+					},
+					{
+						"name": "customer_id",
+						"type": "INT64"
+					},
+					{
+						"name": "product_id",
+						"type": "INT64"
+					},
+					{
+						"name": "sr_description",
+						"type": "UTF8"
+					},
+					{
+						"name": "sr_open_date",
+						"type": "INT96"
+					},
+					{
+						"name": "sr_close_date",
+						"type": "INT96"
+					},
+					{
+						"name": "sr_type",
+						"type": "UTF8"
+					},
+					{
+						"name": "channel",
+						"type": "UTF8"
+					},
+					{
+						"name": "sr_cust_feedback",
+						"type": "UTF8"
+					},
+					{
+						"name": "feedback_type",
+						"type": "UTF8"
+					},
+					{
+						"name": "feedback_severity",
+						"type": "UTF8"
+					}
+				]
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/linkedServices/wilding360datalake')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/Srs_errors')]",
+			"type": "Microsoft.DataFactory/factories/datasets",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"linkedServiceName": {
+					"referenceName": "wilding360datalake",
+					"type": "LinkedServiceReference"
+				},
+				"folder": {
+					"name": "Errors"
+				},
+				"annotations": [],
+				"type": "Parquet",
+				"typeProperties": {
+					"location": {
+						"type": "AzureBlobFSLocation",
+						"folderPath": "srs",
+						"fileSystem": "errors"
+					},
+					"compressionCodec": "snappy"
+				},
+				"schema": []
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/linkedServices/wilding360datalake')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/Transactions')]",
+			"type": "Microsoft.DataFactory/factories/datasets",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"linkedServiceName": {
+					"referenceName": "wilding360datalake",
+					"type": "LinkedServiceReference"
+				},
+				"folder": {
+					"name": "Raw"
+				},
+				"annotations": [],
+				"type": "Parquet",
+				"typeProperties": {
+					"location": {
+						"type": "AzureBlobFSLocation",
+						"folderPath": "Parquet/transactions",
+						"fileSystem": "raw"
+					},
+					"compressionCodec": "snappy"
+				},
+				"schema": []
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/linkedServices/wilding360datalake')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/Transactions_clean')]",
+			"type": "Microsoft.DataFactory/factories/datasets",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"linkedServiceName": {
+					"referenceName": "wilding360datalake",
+					"type": "LinkedServiceReference"
+				},
+				"folder": {
+					"name": "Clean"
+				},
+				"annotations": [],
+				"type": "Parquet",
+				"typeProperties": {
+					"location": {
+						"type": "AzureBlobFSLocation",
+						"folderPath": "transactions",
+						"fileSystem": "clean"
+					},
+					"compressionCodec": "snappy"
+				},
+				"schema": []
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/linkedServices/wilding360datalake')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/Transactions_errors')]",
+			"type": "Microsoft.DataFactory/factories/datasets",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"linkedServiceName": {
+					"referenceName": "wilding360datalake",
+					"type": "LinkedServiceReference"
+				},
+				"folder": {
+					"name": "Errors"
+				},
+				"annotations": [],
+				"type": "Parquet",
+				"typeProperties": {
+					"location": {
+						"type": "AzureBlobFSLocation",
+						"folderPath": "transactions",
+						"fileSystem": "errors"
+					},
+					"compressionCodec": "snappy"
+				},
+				"schema": []
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/linkedServices/wilding360datalake')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/cAddresses')]",
+			"type": "Microsoft.DataFactory/factories/datasets",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"linkedServiceName": {
+					"referenceName": "wilding360datalake",
+					"type": "LinkedServiceReference"
+				},
+				"folder": {
+					"name": "Raw/csv"
 				},
 				"annotations": [],
 				"type": "DelimitedText",
@@ -163,7 +2403,7 @@
 			]
 		},
 		{
-			"name": "[concat(parameters('factoryName'), '/Addresses_clean')]",
+			"name": "[concat(parameters('factoryName'), '/cCityStateCountry')]",
 			"type": "Microsoft.DataFactory/factories/datasets",
 			"apiVersion": "2018-06-01",
 			"properties": {
@@ -172,51 +2412,7 @@
 					"type": "LinkedServiceReference"
 				},
 				"folder": {
-					"name": "Clean"
-				},
-				"annotations": [],
-				"type": "DelimitedText",
-				"typeProperties": {
-					"location": {
-						"type": "AzureBlobFSLocation",
-						"folderPath": "addresses",
-						"fileSystem": "clean"
-					},
-					"columnDelimiter": ",",
-					"escapeChar": "\\",
-					"firstRowAsHeader": true,
-					"quoteChar": "\""
-				},
-				"schema": [
-					{
-						"name": "city",
-						"type": "String"
-					},
-					{
-						"name": "state",
-						"type": "String"
-					},
-					{
-						"name": "country",
-						"type": "String"
-					}
-				]
-			},
-			"dependsOn": [
-				"[concat(variables('factoryId'), '/linkedServices/wilding360datalake')]"
-			]
-		},
-		{
-			"name": "[concat(parameters('factoryName'), '/CityStateCountry')]",
-			"type": "Microsoft.DataFactory/factories/datasets",
-			"apiVersion": "2018-06-01",
-			"properties": {
-				"linkedServiceName": {
-					"referenceName": "wilding360datalake",
-					"type": "LinkedServiceReference"
-				},
-				"folder": {
-					"name": "Auxiliary Tables"
+					"name": "Raw/csv"
 				},
 				"annotations": [],
 				"type": "DelimitedText",
@@ -251,7 +2447,7 @@
 			]
 		},
 		{
-			"name": "[concat(parameters('factoryName'), '/Customers')]",
+			"name": "[concat(parameters('factoryName'), '/cCustomers')]",
 			"type": "Microsoft.DataFactory/factories/datasets",
 			"apiVersion": "2018-06-01",
 			"properties": {
@@ -260,7 +2456,7 @@
 					"type": "LinkedServiceReference"
 				},
 				"folder": {
-					"name": "Raw"
+					"name": "Raw/csv"
 				},
 				"annotations": [],
 				"type": "DelimitedText",
@@ -359,7 +2555,7 @@
 			]
 		},
 		{
-			"name": "[concat(parameters('factoryName'), '/Customers_clean')]",
+			"name": "[concat(parameters('factoryName'), '/cProducts')]",
 			"type": "Microsoft.DataFactory/factories/datasets",
 			"apiVersion": "2018-06-01",
 			"properties": {
@@ -368,77 +2564,7 @@
 					"type": "LinkedServiceReference"
 				},
 				"folder": {
-					"name": "Clean"
-				},
-				"annotations": [],
-				"type": "DelimitedText",
-				"typeProperties": {
-					"location": {
-						"type": "AzureBlobFSLocation",
-						"folderPath": "customers",
-						"fileSystem": "clean"
-					},
-					"columnDelimiter": ",",
-					"escapeChar": "\\",
-					"quoteChar": "\""
-				},
-				"schema": [
-					{
-						"type": "String"
-					},
-					{
-						"type": "String"
-					},
-					{
-						"type": "String"
-					}
-				]
-			},
-			"dependsOn": [
-				"[concat(variables('factoryId'), '/linkedServices/wilding360datalake')]"
-			]
-		},
-		{
-			"name": "[concat(parameters('factoryName'), '/addressesErrors')]",
-			"type": "Microsoft.DataFactory/factories/datasets",
-			"apiVersion": "2018-06-01",
-			"properties": {
-				"linkedServiceName": {
-					"referenceName": "wilding360datalake",
-					"type": "LinkedServiceReference"
-				},
-				"folder": {
-					"name": "Errors"
-				},
-				"annotations": [],
-				"type": "DelimitedText",
-				"typeProperties": {
-					"location": {
-						"type": "AzureBlobFSLocation",
-						"fileSystem": "errors"
-					},
-					"columnDelimiter": ",",
-					"escapeChar": "\\",
-					"firstRowAsHeader": false,
-					"quoteChar": "\""
-				},
-				"schema": []
-			},
-			"dependsOn": [
-				"[concat(variables('factoryId'), '/linkedServices/wilding360datalake')]"
-			]
-		},
-		{
-			"name": "[concat(parameters('factoryName'), '/Products')]",
-			"type": "Microsoft.DataFactory/factories/datasets",
-			"apiVersion": "2018-06-01",
-			"properties": {
-				"linkedServiceName": {
-					"referenceName": "wilding360datalake",
-					"type": "LinkedServiceReference"
-				},
-				"folder": {
-					"name": "Raw"
+					"name": "Raw/csv"
 				},
 				"annotations": [],
 				"type": "DelimitedText",
@@ -521,7 +2647,7 @@
 			]
 		},
 		{
-			"name": "[concat(parameters('factoryName'), '/SRS')]",
+			"name": "[concat(parameters('factoryName'), '/cSRS')]",
 			"type": "Microsoft.DataFactory/factories/datasets",
 			"apiVersion": "2018-06-01",
 			"properties": {
@@ -530,7 +2656,7 @@
 					"type": "LinkedServiceReference"
 				},
 				"folder": {
-					"name": "Raw"
+					"name": "Raw/csv"
 				},
 				"annotations": [],
 				"type": "DelimitedText",
@@ -589,7 +2715,7 @@
 			]
 		},
 		{
-			"name": "[concat(parameters('factoryName'), '/Transactions')]",
+			"name": "[concat(parameters('factoryName'), '/cTransactions')]",
 			"type": "Microsoft.DataFactory/factories/datasets",
 			"apiVersion": "2018-06-01",
 			"properties": {
@@ -598,7 +2724,7 @@
 					"type": "LinkedServiceReference"
 				},
 				"folder": {
-					"name": "Raw"
+					"name": "Raw/csv"
 				},
 				"annotations": [],
 				"type": "DelimitedText",
@@ -657,7 +2783,7 @@
 			]
 		},
 		{
-			"name": "[concat(parameters('factoryName'), '/sink')]",
+			"name": "[concat(parameters('factoryName'), '/channels')]",
 			"type": "Microsoft.DataFactory/factories/datasets",
 			"apiVersion": "2018-06-01",
 			"properties": {
@@ -665,32 +2791,310 @@
 					"referenceName": "wilding360datalake",
 					"type": "LinkedServiceReference"
 				},
+				"folder": {
+					"name": "Auxiliary Tables"
+				},
 				"annotations": [],
-				"type": "DelimitedText",
+				"type": "Parquet",
 				"typeProperties": {
 					"location": {
 						"type": "AzureBlobFSLocation",
-						"fileSystem": "raw"
+						"folderPath": "channels",
+						"fileSystem": "auxiliary-tables"
 					},
-					"columnDelimiter": ",",
-					"escapeChar": "\\",
-					"quoteChar": "\""
+					"compressionCodec": "snappy"
 				},
 				"schema": [
 					{
-						"type": "String"
+						"name": "channel",
+						"type": "UTF8"
 					},
 					{
-						"type": "String"
-					},
-					{
-						"type": "String"
+						"name": "count",
+						"type": "INT64"
 					}
 				]
 			},
 			"dependsOn": [
 				"[concat(variables('factoryId'), '/linkedServices/wilding360datalake')]"
 			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/cityStateCountry')]",
+			"type": "Microsoft.DataFactory/factories/datasets",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"linkedServiceName": {
+					"referenceName": "wilding360datalake",
+					"type": "LinkedServiceReference"
+				},
+				"folder": {
+					"name": "Auxiliary Tables"
+				},
+				"annotations": [],
+				"type": "Parquet",
+				"typeProperties": {
+					"location": {
+						"type": "AzureBlobFSLocation",
+						"folderPath": "cityStateCountry",
+						"fileSystem": "auxiliary-tables"
+					},
+					"compressionCodec": "snappy"
+				},
+				"schema": [
+					{
+						"name": "City",
+						"type": "UTF8"
+					},
+					{
+						"name": "State",
+						"type": "UTF8"
+					},
+					{
+						"name": "Country",
+						"type": "UTF8"
+					}
+				]
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/linkedServices/wilding360datalake')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/customerIDs')]",
+			"type": "Microsoft.DataFactory/factories/datasets",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"linkedServiceName": {
+					"referenceName": "wilding360datalake",
+					"type": "LinkedServiceReference"
+				},
+				"folder": {
+					"name": "Auxiliary Tables"
+				},
+				"annotations": [],
+				"type": "Parquet",
+				"typeProperties": {
+					"location": {
+						"type": "AzureBlobFSLocation",
+						"folderPath": "customerIDs",
+						"fileSystem": "auxiliary-tables"
+					},
+					"compressionCodec": "snappy"
+				},
+				"schema": [
+					{
+						"name": "customer_id",
+						"type": "INT64"
+					}
+				]
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/linkedServices/wilding360datalake')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/merchantNames')]",
+			"type": "Microsoft.DataFactory/factories/datasets",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"linkedServiceName": {
+					"referenceName": "wilding360datalake",
+					"type": "LinkedServiceReference"
+				},
+				"folder": {
+					"name": "Auxiliary Tables"
+				},
+				"annotations": [],
+				"type": "Parquet",
+				"typeProperties": {
+					"location": {
+						"type": "AzureBlobFSLocation",
+						"folderPath": "merchants",
+						"fileSystem": "auxiliary-tables"
+					},
+					"compressionCodec": "snappy"
+				},
+				"schema": [
+					{
+						"name": "merchant_name",
+						"type": "UTF8"
+					},
+					{
+						"name": "count",
+						"type": "INT64"
+					}
+				]
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/linkedServices/wilding360datalake')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/occupations')]",
+			"type": "Microsoft.DataFactory/factories/datasets",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"linkedServiceName": {
+					"referenceName": "wilding360datalake",
+					"type": "LinkedServiceReference"
+				},
+				"folder": {
+					"name": "Auxiliary Tables"
+				},
+				"annotations": [],
+				"type": "Parquet",
+				"typeProperties": {
+					"location": {
+						"type": "AzureBlobFSLocation",
+						"folderPath": "occupations",
+						"fileSystem": "auxiliary-tables"
+					},
+					"compressionCodec": "snappy"
+				},
+				"schema": [
+					{
+						"name": "occupation",
+						"type": "UTF8"
+					}
+				]
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/linkedServices/wilding360datalake')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/productIDs')]",
+			"type": "Microsoft.DataFactory/factories/datasets",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"linkedServiceName": {
+					"referenceName": "wilding360datalake",
+					"type": "LinkedServiceReference"
+				},
+				"folder": {
+					"name": "Auxiliary Tables"
+				},
+				"annotations": [],
+				"type": "Parquet",
+				"typeProperties": {
+					"location": {
+						"type": "AzureBlobFSLocation",
+						"folderPath": "productIDs",
+						"fileSystem": "auxiliary-tables"
+					},
+					"compressionCodec": "snappy"
+				},
+				"schema": [
+					{
+						"name": "product_id",
+						"type": "INT64"
+					}
+				]
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/linkedServices/wilding360datalake')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/productNameTypeDesc')]",
+			"type": "Microsoft.DataFactory/factories/datasets",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"linkedServiceName": {
+					"referenceName": "wilding360datalake",
+					"type": "LinkedServiceReference"
+				},
+				"folder": {
+					"name": "Auxiliary Tables"
+				},
+				"annotations": [],
+				"type": "Parquet",
+				"typeProperties": {
+					"location": {
+						"type": "AzureBlobFSLocation",
+						"folderPath": "productNames",
+						"fileSystem": "auxiliary-tables"
+					},
+					"compressionCodec": "snappy"
+				},
+				"schema": [
+					{
+						"name": "product_name",
+						"type": "UTF8"
+					},
+					{
+						"name": "product_type",
+						"type": "UTF8"
+					},
+					{
+						"name": "product_description",
+						"type": "UTF8"
+					},
+					{
+						"name": "count",
+						"type": "INT64"
+					}
+				]
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/linkedServices/wilding360datalake')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/srTypes')]",
+			"type": "Microsoft.DataFactory/factories/datasets",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"linkedServiceName": {
+					"referenceName": "wilding360datalake",
+					"type": "LinkedServiceReference"
+				},
+				"folder": {
+					"name": "Auxiliary Tables"
+				},
+				"annotations": [],
+				"type": "Parquet",
+				"typeProperties": {
+					"location": {
+						"type": "AzureBlobFSLocation",
+						"folderPath": "srTypes",
+						"fileSystem": "auxiliary-tables"
+					},
+					"compressionCodec": "snappy"
+				},
+				"schema": [
+					{
+						"name": "sr_type",
+						"type": "UTF8"
+					},
+					{
+						"name": "count",
+						"type": "INT64"
+					}
+				]
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/linkedServices/wilding360datalake')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/AzureDatabricks1')]",
+			"type": "Microsoft.DataFactory/factories/linkedServices",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"annotations": [],
+				"type": "AzureDatabricks",
+				"typeProperties": {
+					"domain": "https://adb-8335868949914870.10.azuredatabricks.net",
+					"accessToken": {
+						"type": "SecureString",
+						"value": "[parameters('AzureDatabricks1_accessToken')]"
+					},
+					"existingClusterId": "1120-015936-tp7ks379"
+				}
+			},
+			"dependsOn": []
 		},
 		{
 			"name": "[concat(parameters('factoryName'), '/wilding360PoC')]",
@@ -748,237 +3152,6 @@
 			"dependsOn": []
 		},
 		{
-			"name": "[concat(parameters('factoryName'), '/customer360_ETL')]",
-			"type": "Microsoft.DataFactory/factories/dataflows",
-			"apiVersion": "2018-06-01",
-			"properties": {
-				"folder": {
-					"name": "old"
-				},
-				"type": "MappingDataFlow",
-				"typeProperties": {
-					"sources": [
-						{
-							"dataset": {
-								"referenceName": "Addresses",
-								"type": "DatasetReference"
-							},
-							"name": "Addresses"
-						},
-						{
-							"dataset": {
-								"referenceName": "CityStateCountry",
-								"type": "DatasetReference"
-							},
-							"name": "CityStateCountry"
-						},
-						{
-							"dataset": {
-								"referenceName": "Customers",
-								"type": "DatasetReference"
-							},
-							"name": "Customers"
-						},
-						{
-							"dataset": {
-								"referenceName": "Products",
-								"type": "DatasetReference"
-							},
-							"name": "Products"
-						}
-					],
-					"sinks": [
-						{
-							"dataset": {
-								"referenceName": "Addresses_clean",
-								"type": "DatasetReference"
-							},
-							"name": "AddressesClean"
-						},
-						{
-							"dataset": {
-								"referenceName": "Customers_clean",
-								"type": "DatasetReference"
-							},
-							"name": "CustomersClean"
-						},
-						{
-							"dataset": {
-								"referenceName": "addressesErrors",
-								"type": "DatasetReference"
-							},
-							"name": "Errors"
-						},
-						{
-							"dataset": {
-								"referenceName": "Customers_clean",
-								"type": "DatasetReference"
-							},
-							"name": "ProductsClean"
-						}
-					],
-					"transformations": [
-						{
-							"name": "AddressesValidation"
-						},
-						{
-							"name": "AddressesTransformation"
-						},
-						{
-							"name": "FillNullAddressWithNA",
-							"description": "address1, 2, 3 if NULL -> N/A"
-						},
-						{
-							"name": "customerIDs"
-						},
-						{
-							"name": "ValidatedCustomers"
-						},
-						{
-							"name": "DerivedColumn1"
-						},
-						{
-							"name": "Assert1"
-						},
-						{
-							"name": "Filter1"
-						},
-						{
-							"name": "Exists1"
-						},
-						{
-							"name": "Exists2"
-						}
-					],
-					"script": "source(output(\n\t\taddress_id as long,\n\t\taddress_type as string,\n\t\taddress1 as string,\n\t\taddress2 as string,\n\t\taddress3 as string,\n\t\tcity as string,\n\t\tstate as string,\n\t\tcountry as string,\n\t\tzipcode as string,\n\t\tphone as string,\n\t\temail as string,\n\t\tFax as string,\n\t\tcustomer_id as long\n\t),\n\tallowSchemaDrift: true,\n\tvalidateSchema: false,\n\tignoreNoFilesFound: false) ~> Addresses\nsource(output(\n\t\tcity as string,\n\t\tstate as string,\n\t\tcountry as string\n\t),\n\tallowSchemaDrift: false,\n\tvalidateSchema: false,\n\tignoreNoFilesFound: false) ~> CityStateCountry\nsource(output(\n\t\tcustomer_id as long,\n\t\tsource_id as string,\n\t\tfirst_name as string,\n\t\tmiddle_name as string,\n\t\tlast_name as string,\n\t\tdob as timestamp,\n\t\tgender as string,\n\t\tnationality as string,\n\t\tmarital_status as string,\n\t\toccupation as string,\n\t\tavg_family_size as integer,\n\t\tincome_level as string,\n\t\tdate_onboarded as timestamp,\n\t\tcreated_date as timestamp,\n\t\tupdated_date as timestamp,\n\t\teffective_start_date as timestamp,\n\t\teffective_end_date as timestamp,\n\t\tIdentifier_type as string,\n\t\tidentifier as string\n\t),\n\tallowSchemaDrift: true,\n\tvalidateSchema: false,\n\tignoreNoFilesFound: false,\n\tdateFormats: ['MM/dd/yyyy'],\n\ttimestampFormats: ['MM/dd/yyyy HH:mm:ss']) ~> Customers\nsource(output(\n\t\tproduct_id as long,\n\t\tproduct_name as string,\n\t\tproduct_type as string,\n\t\tproduct_description as string,\n\t\tissue_date as date,\n\t\tvalid_till_date as date,\n\t\taccount_status as string,\n\t\tcredit_card_limit as long,\n\t\tinterest_rate as double,\n\t\ttenure as long,\n\t\tservice_charges as string,\n\t\tcustomer_id as long,\n\t\tfd_principal_amount as long,\n\t\tloan_collateral_value as long,\n\t\tloan_amount as long\n\t),\n\tallowSchemaDrift: true,\n\tvalidateSchema: false,\n\tignoreNoFilesFound: false,\n\tdateFormats: ['yyyy/MM/dd']) ~> Products\nExists2 assert(expectTrue(!isNull(address_id), false, 'addressIdNotNull', null, 'Address Id is null'),\n\texpectTrue(lower(address_type) == 'residence' || lower(address_type) == 'business', false, 'addressTypeValid', null, \"Address is not residence or business\"),\n\texpectTrue(address1 != \"\", false, 'address1NotBlank', null, 'Address1 is blank'),\n\texpectTrue(address2 != \"\", false, 'address2NotBlank', null, 'Address2 is blank'),\n\texpectTrue(address3 != \"\", false, 'address3NotBlank', null, 'Address3 is blank'),\n\texpectTrue(isInteger(zipcode), false, 'zipcodeNumeric', null, \"Zipcode is not numeric\"),\n\texpectTrue(length(toString(phone)) == 11, false, 'phoneNumberNot11digits', null, toString(phone) + \" Invalid Phone number length\"),\n\texpectTrue(regexMatch(email, `^\\w+([-+.']\\w+)*@\\w+([-.]\\w+)*\\.\\w+([-.]\\w+)*$`), false, 'validEmail', null, email + \" is an invalid email\"),\n\texpectTrue(length(toString(Fax)) == 11, false, 'FaxNumberNot11digits', null, toString(Fax) + \" Invalid Phone number length\")) ~> AddressesValidation\nAddressesValidation derive(address1 = upper(address1),\n\t\taddress2 = upper(address2),\n\t\taddress3 = upper(address3),\n\t\taddress_type = initCap(address_type),\n\t\tphone = substring(phone, 1, 1) + \"-\" + substring(phone, 2, 3) + \"-\" + substring(phone, 5, 3) + \"-\" + substring(phone, 8, 4),\n\t\tFax = substring(Fax, 1, 1) + \"-\" + substring(Fax, 2, 3) + \"-\" + substring(Fax, 5, 3) + \"-\" + substring(Fax, 8, 4)) ~> AddressesTransformation\nAddresses derive(address1 = iif(isNull(address1), \"N/A\", address1),\n\t\taddress2 = iif(isNull(address2), \"N/A\", address2),\n\t\taddress3 = iif(isNull(address3), \"N/A\", address3)) ~> FillNullAddressWithNA\nCustomers select(mapColumn(\n\t\tcustomer_id\n\t),\n\tskipDuplicateMapInputs: true,\n\tskipDuplicateMapOutputs: true) ~> customerIDs\nCustomers assert(expectTrue(!isNull(customer_id), false, 'custIDNotNull', null, \"Customer Id may not be null\"),\n\texpectTrue(upper(source_id) == \"ERP\", false, 'sourceIDERP', null, source_id + \" is an invalid source id -- must be ERP\"),\n\texpectTrue(first_name != \"\", false, 'firstNameNotBlank', null, toString(customer_id) + \": First Name must not be blank\"),\n\texpectTrue(last_name != \"\", false, 'lastNameNotBlank', null, toString(customer_id) + \": Last name is blank\"),\n\texpectTrue(gender == \"Male\" || gender == \"Female\", false, 'maleOrFemale', null, gender + \": is not a valid gender\"),\n\texpectTrue(marital_status == \"Married\" || marital_status == \"Single\", false, 'maritalStatus', null, marital_status + \": is not a valid marital status\"),\n\texpectTrue(avg_family_size > 0, false, 'avgFamilyNot0', null, toString(avg_family_size) + \": is an invalid family size. Must be numeric and cannot be 0.\"),\n\texpectTrue(income_level == \"Low\" || income_level == \"Medium\" || income_level == \"High\", false, 'incomeLevelValid', null, income_level + \": is invalid income level. Must be Low-Medium-High\"),\n\texpectTrue(length(identifier) == 11, false, 'identifierLength11', null, identifier + \": is invalid identifier. Must be 11 characters long.\")) ~> ValidatedCustomers\nValidatedCustomers derive(source_id = upper(source_id),\n\t\tfirst_name = upper(first_name),\n\t\tmiddle_name = upper(middle_name),\n\t\tlast_name = upper(last_name)) ~> DerivedColumn1\nProducts, customerIDs assert(expectExists(Products@customer_id == customerIDs@customer_id, false, 'customerIDExists', null, toString(Products@customer_id) + \": is not a valid customer id\")) ~> Assert1\nAddressesTransformation filter(isError()) ~> Filter1\nFillNullAddressWithNA, CityStateCountry exists(Addresses@city == CityStateCountry@city,\n\tnegate:false,\n\tbroadcast: 'auto')~> Exists1\nExists1, customerIDs exists(customerIDs@customer_id == customerIDs@customer_id,\n\tnegate:false,\n\tbroadcast: 'auto')~> Exists2\nAddressesTransformation sink(allowSchemaDrift: true,\n\tvalidateSchema: false,\n\tinput(\n\t\tcity as string,\n\t\tstate as string,\n\t\tcountry as string\n\t),\n\tpartitionFileNames:['Addresses_clean.csv'],\n\tumask: 0022,\n\tpreCommands: [],\n\tpostCommands: [],\n\tskipDuplicateMapInputs: true,\n\tskipDuplicateMapOutputs: true,\n\tpartitionBy('hash', 1)) ~> AddressesClean\nDerivedColumn1 sink(allowSchemaDrift: true,\n\tvalidateSchema: false,\n\tinput(\n\t\tColumn_1 as string,\n\t\tColumn_2 as string,\n\t\tColumn_3 as string\n\t),\n\tpartitionFileNames:['Customers_clean.csv'],\n\tumask: 0022,\n\tpreCommands: [],\n\tpostCommands: [],\n\tskipDuplicateMapInputs: true,\n\tskipDuplicateMapOutputs: true,\n\tpartitionBy('hash', 1)) ~> CustomersClean\nFilter1 sink(allowSchemaDrift: true,\n\tvalidateSchema: true,\n\tpartitionFileNames:['AddressErrors.csv'],\n\tumask: 0022,\n\tpreCommands: [],\n\tpostCommands: [],\n\tskipDuplicateMapInputs: true,\n\tskipDuplicateMapOutputs: true,\n\tsaveOrder: 1,\n\tpartitionBy('hash', 1)) ~> Errors\nAssert1 sink(allowSchemaDrift: true,\n\tvalidateSchema: false,\n\tinput(\n\t\tColumn_1 as string,\n\t\tColumn_2 as string,\n\t\tColumn_3 as string\n\t),\n\tpartitionFileNames:['Products_clean.csv'],\n\tumask: 0022,\n\tpreCommands: [],\n\tpostCommands: [],\n\tskipDuplicateMapInputs: true,\n\tskipDuplicateMapOutputs: true,\n\tpartitionBy('hash', 1)) ~> ProductsClean"
-				}
-			},
-			"dependsOn": [
-				"[concat(variables('factoryId'), '/datasets/Addresses')]",
-				"[concat(variables('factoryId'), '/datasets/CityStateCountry')]",
-				"[concat(variables('factoryId'), '/datasets/Customers')]",
-				"[concat(variables('factoryId'), '/datasets/Products')]",
-				"[concat(variables('factoryId'), '/datasets/Addresses_clean')]",
-				"[concat(variables('factoryId'), '/datasets/Customers_clean')]",
-				"[concat(variables('factoryId'), '/datasets/addressesErrors')]"
-			]
-		},
-		{
-			"name": "[concat(parameters('factoryName'), '/customerETL')]",
-			"type": "Microsoft.DataFactory/factories/dataflows",
-			"apiVersion": "2018-06-01",
-			"properties": {
-				"type": "MappingDataFlow",
-				"typeProperties": {
-					"sources": [
-						{
-							"dataset": {
-								"referenceName": "Customers",
-								"type": "DatasetReference"
-							},
-							"name": "Customers"
-						}
-					],
-					"sinks": [
-						{
-							"dataset": {
-								"referenceName": "Customers_clean",
-								"type": "DatasetReference"
-							},
-							"name": "CustomersClean"
-						},
-						{
-							"dataset": {
-								"referenceName": "customerErrors",
-								"type": "DatasetReference"
-							},
-							"name": "CustomersErrors"
-						}
-					],
-					"transformations": [
-						{
-							"name": "ValidatedCustomers"
-						},
-						{
-							"name": "customersTransformed"
-						},
-						{
-							"name": "hasErrors"
-						}
-					],
-					"script": "source(output(\n\t\tcustomer_id as long,\n\t\tsource_id as string,\n\t\tfirst_name as string,\n\t\tmiddle_name as string,\n\t\tlast_name as string,\n\t\tdob as date,\n\t\tgender as string,\n\t\tnationality as string,\n\t\tmarital_status as string,\n\t\toccupation as string,\n\t\tavg_family_size as integer,\n\t\tincome_level as string,\n\t\tdate_onboarded as date,\n\t\tcreated_date as date,\n\t\tupdated_date as date,\n\t\teffective_start_date as date,\n\t\teffective_end_date as date,\n\t\tIdentifier_type as string,\n\t\tidentifier as string\n\t),\n\tallowSchemaDrift: false,\n\tvalidateSchema: false,\n\tignoreNoFilesFound: false,\n\tdateFormats: ['MM/dd/yyyy'],\n\ttimestampFormats: ['MM/dd/yyyy HH:mm:ss']) ~> Customers\nCustomers assert(expectTrue(!isNull(customer_id), false, 'custIDNotNull', null, \"Customer Id may not be null\"),\n\texpectTrue(upper(source_id) == \"ERP\", false, 'sourceIDERP', null, source_id + \" is an invalid source id -- must be ERP\"),\n\texpectTrue(first_name != \"\", false, 'firstNameNotBlank', null, toString(customer_id) + \": First Name must not be blank\"),\n\texpectTrue(last_name != \"\", false, 'lastNameNotBlank', null, toString(customer_id) + \": Last name is blank\"),\n\texpectTrue(gender == \"Male\" || gender == \"Female\", false, 'maleOrFemale', null, gender + \": is not a valid gender\"),\n\texpectTrue(marital_status == \"Married\" || marital_status == \"Single\", false, 'maritalStatus', null, marital_status + \": is not a valid marital status\"),\n\texpectTrue(avg_family_size > 0, false, 'avgFamilyNot0', null, toString(avg_family_size) + \": is an invalid family size. Must be numeric and cannot be 0.\"),\n\texpectTrue(income_level == \"Low\" || income_level == \"Medium\" || income_level == \"High\", false, 'incomeLevelValid', null, income_level + \": is invalid income level. Must be Low-Medium-High\"),\n\texpectTrue(length(identifier) == 11, false, 'identifierLength11', null, identifier + \": is invalid identifier. Must be 11 characters long.\")) ~> ValidatedCustomers\nValidatedCustomers derive(source_id = upper(source_id),\n\t\tfirst_name = upper(first_name),\n\t\tmiddle_name = upper(middle_name),\n\t\tlast_name = upper(last_name)) ~> customersTransformed\ncustomersTransformed filter(isError()) ~> hasErrors\ncustomersTransformed sink(allowSchemaDrift: true,\n\tvalidateSchema: false,\n\tinput(\n\t\tColumn_1 as string,\n\t\tColumn_2 as string,\n\t\tColumn_3 as string\n\t),\n\tumask: 0022,\n\tpreCommands: [],\n\tpostCommands: [],\n\tskipDuplicateMapInputs: true,\n\tskipDuplicateMapOutputs: true) ~> CustomersClean\nhasErrors sink(allowSchemaDrift: true,\n\tvalidateSchema: false,\n\tpartitionFileNames:['customersErrors.csv'],\n\tumask: 0022,\n\tpreCommands: [],\n\tpostCommands: [],\n\tskipDuplicateMapInputs: true,\n\tskipDuplicateMapOutputs: true,\n\tpartitionBy('hash', 1)) ~> CustomersErrors"
-				}
-			},
-			"dependsOn": [
-				"[concat(variables('factoryId'), '/datasets/Customers')]",
-				"[concat(variables('factoryId'), '/datasets/Customers_clean')]",
-				"[concat(variables('factoryId'), '/datasets/customerErrors')]"
-			]
-		},
-		{
-			"name": "[concat(parameters('factoryName'), '/productsETL')]",
-			"type": "Microsoft.DataFactory/factories/dataflows",
-			"apiVersion": "2018-06-01",
-			"properties": {
-				"type": "MappingDataFlow",
-				"typeProperties": {
-					"sources": [
-						{
-							"dataset": {
-								"referenceName": "Customers",
-								"type": "DatasetReference"
-							},
-							"name": "Customers"
-						},
-						{
-							"dataset": {
-								"referenceName": "Products",
-								"type": "DatasetReference"
-							},
-							"name": "Products"
-						}
-					],
-					"sinks": [
-						{
-							"dataset": {
-								"referenceName": "Customers_clean",
-								"type": "DatasetReference"
-							},
-							"name": "ProductsClean"
-						},
-						{
-							"dataset": {
-								"referenceName": "productsErrors",
-								"type": "DatasetReference"
-							},
-							"name": "productsErrors"
-						}
-					],
-					"transformations": [
-						{
-							"name": "customerIDs"
-						},
-						{
-							"name": "Assert1"
-						},
-						{
-							"name": "DerivedColumn1"
-						},
-						{
-							"name": "Filter1"
-						}
-					],
-					"script": "source(output(\n\t\tcustomer_id as long,\n\t\tsource_id as string,\n\t\tfirst_name as string,\n\t\tmiddle_name as string,\n\t\tlast_name as string,\n\t\tdob as timestamp,\n\t\tgender as string,\n\t\tnationality as string,\n\t\tmarital_status as string,\n\t\toccupation as string,\n\t\tavg_family_size as integer,\n\t\tincome_level as string,\n\t\tdate_onboarded as timestamp,\n\t\tcreated_date as timestamp,\n\t\tupdated_date as timestamp,\n\t\teffective_start_date as timestamp,\n\t\teffective_end_date as timestamp,\n\t\tIdentifier_type as string,\n\t\tidentifier as string\n\t),\n\tallowSchemaDrift: true,\n\tvalidateSchema: false,\n\tignoreNoFilesFound: false,\n\tdateFormats: ['MM/dd/yyyy'],\n\ttimestampFormats: ['MM/dd/yyyy HH:mm:ss']) ~> Customers\nsource(output(\n\t\tproduct_id as integer,\n\t\tproduct_name as string,\n\t\tproduct_type as string,\n\t\tproduct_description as string,\n\t\tissue_date as date,\n\t\tvalid_till_date as date,\n\t\taccount_status as string,\n\t\tcredit_card_limit as integer,\n\t\tinterest_rate as double,\n\t\ttenure as integer,\n\t\tservice_charges as string,\n\t\tcustomer_id as integer,\n\t\tfd_principal_amount as integer,\n\t\tloan_collateral_value as integer,\n\t\tloan_amount as integer\n\t),\n\tallowSchemaDrift: true,\n\tvalidateSchema: false,\n\tignoreNoFilesFound: false,\n\tdateFormats: ['yyyy/MM/dd']) ~> Products\nCustomers select(mapColumn(\n\t\tcustomer_id\n\t),\n\tskipDuplicateMapInputs: true,\n\tskipDuplicateMapOutputs: true) ~> customerIDs\nProducts, customerIDs assert(expectExists(Products@customer_id == customerIDs@customer_id, false, 'customerIDExists', null, toString(Products@customer_id) + \": is not a valid customer id\"),\n\texpectTrue(valid_till_date >= issue_date, false, 'validAfterIssueDate'),\n\texpectTrue(account_status == \"Open\" || account_status == \"Closed\", false, 'accountStatusOpenClosed')) ~> Assert1\nAssert1 derive(product_name = initCap(product_name),\n\t\tproduct_type = upper(product_type),\n\t\tproduct_description = upper(product_description),\n\t\tissue_date = toDate(toString(issue_date), \"MMM-dd-yyyy\"),\n\t\tvalid_till_date = toDate(toString(valid_till_date), \"MMM-dd-yyyy\")) ~> DerivedColumn1\nDerivedColumn1 filter(isError()) ~> Filter1\nDerivedColumn1 sink(allowSchemaDrift: true,\n\tvalidateSchema: false,\n\tinput(\n\t\tColumn_1 as string,\n\t\tColumn_2 as string,\n\t\tColumn_3 as string\n\t),\n\tumask: 0022,\n\tpreCommands: [],\n\tpostCommands: [],\n\tskipDuplicateMapInputs: true,\n\tskipDuplicateMapOutputs: true) ~> ProductsClean\nFilter1 sink(allowSchemaDrift: true,\n\tvalidateSchema: false,\n\tpartitionFileNames:['productsErrors.csv'],\n\tumask: 0022,\n\tpreCommands: [],\n\tpostCommands: [],\n\tskipDuplicateMapInputs: true,\n\tskipDuplicateMapOutputs: true,\n\tpartitionBy('hash', 1)) ~> productsErrors"
-				}
-			},
-			"dependsOn": [
-				"[concat(variables('factoryId'), '/datasets/Customers')]",
-				"[concat(variables('factoryId'), '/datasets/Products')]",
-				"[concat(variables('factoryId'), '/datasets/Customers_clean')]",
-				"[concat(variables('factoryId'), '/datasets/productsErrors')]"
-			]
-		},
-		{
 			"name": "[concat(parameters('factoryName'), '/addressesETL')]",
 			"type": "Microsoft.DataFactory/factories/dataflows",
 			"apiVersion": "2018-06-01",
@@ -995,14 +3168,14 @@
 						},
 						{
 							"dataset": {
-								"referenceName": "Customers",
+								"referenceName": "customerIDs",
 								"type": "DatasetReference"
 							},
 							"name": "Customers"
 						},
 						{
 							"dataset": {
-								"referenceName": "CityStateCountry",
+								"referenceName": "cityStateCountry",
 								"type": "DatasetReference"
 							},
 							"name": "CityStateCountry"
@@ -1018,10 +3191,11 @@
 						},
 						{
 							"dataset": {
-								"referenceName": "addressesErrors",
+								"referenceName": "Addresses_errors",
 								"type": "DatasetReference"
 							},
-							"name": "addressesErrors"
+							"name": "addressesErrors",
+							"description": "Gathered Addresses with errors, if an address fails exists checks it may appear more than once"
 						}
 					],
 					"transformations": [
@@ -1036,620 +3210,96 @@
 							"description": "address1, 2, 3 if NULL -> N/A"
 						},
 						{
-							"name": "customerIDs"
-						},
-						{
 							"name": "Filter1"
 						},
 						{
-							"name": "Select1"
+							"name": "CustomerIDExists"
 						},
 						{
-							"name": "DerivedColumn1"
+							"name": "Union1"
 						},
 						{
-							"name": "AddressIDErrors"
+							"name": "CityStateCountryExists"
 						}
 					],
-					"script": "source(output(\n\t\taddress_id as long,\n\t\taddress_type as string,\n\t\taddress1 as string,\n\t\taddress2 as string,\n\t\taddress3 as string,\n\t\tcity as string,\n\t\tstate as string,\n\t\tcountry as string,\n\t\tzipcode as string,\n\t\tphone as string,\n\t\temail as string,\n\t\tFax as string,\n\t\tcustomer_id as long\n\t),\n\tallowSchemaDrift: false,\n\tvalidateSchema: false,\n\tignoreNoFilesFound: false) ~> Addresses\nsource(output(\n\t\tcustomer_id as long,\n\t\tsource_id as string,\n\t\tfirst_name as string,\n\t\tmiddle_name as string,\n\t\tlast_name as string,\n\t\tdob as timestamp,\n\t\tgender as string,\n\t\tnationality as string,\n\t\tmarital_status as string,\n\t\toccupation as string,\n\t\tavg_family_size as integer,\n\t\tincome_level as string,\n\t\tdate_onboarded as timestamp,\n\t\tcreated_date as timestamp,\n\t\tupdated_date as timestamp,\n\t\teffective_start_date as timestamp,\n\t\teffective_end_date as timestamp,\n\t\tIdentifier_type as string,\n\t\tidentifier as string\n\t),\n\tallowSchemaDrift: false,\n\tvalidateSchema: false,\n\tignoreNoFilesFound: false,\n\tdateFormats: ['MM/dd/yyyy'],\n\ttimestampFormats: ['MM/dd/yyyy HH:mm:ss']) ~> Customers\nsource(output(\n\t\tcity as string,\n\t\tstate as string,\n\t\tcountry as string\n\t),\n\tallowSchemaDrift: false,\n\tvalidateSchema: false,\n\tignoreNoFilesFound: false) ~> CityStateCountry\nAddressesWna, customerIDs, CityStateCountry assert(expectTrue(!isNull(address_id), false, 'addressIdNotNull', null, 'Address Id is null'),\n\texpectTrue(lower(address_type) == 'residence' || lower(address_type) == 'business', false, 'addressTypeValid', null, \"Address is not residence or business\"),\n\texpectTrue(address1 != \"\", false, 'address1NotBlank', null, 'Address1 is blank'),\n\texpectTrue(address2 != \"\", false, 'address2NotBlank', null, 'Address2 is blank'),\n\texpectTrue(address3 != \"\", false, 'address3NotBlank', null, 'Address3 is blank'),\n\texpectTrue(isInteger(zipcode), false, 'zipcodeNumeric', null, \"Zipcode is not numeric\"),\n\texpectTrue(length(toString(phone)) == 11, false, 'phoneNumberNot11digits', null, toString(phone) + \" Invalid Phone number length\"),\n\texpectTrue(regexMatch(email, `^\\w+([-+.']\\w+)*@\\w+([-.]\\w+)*\\.\\w+([-.]\\w+)*$`), false, 'validEmail', null, email + \" is an invalid email\"),\n\texpectTrue(length(toString(Fax)) == 11, false, 'FaxNumberNot11digits', null, toString(Fax) + \" Invalid Phone number length\"),\n\texpectExists(Addresses@city == CityStateCountry@city, false, 'cityExists', null, Addresses@city + \": is not a recognized city \"),\n\texpectExists(Addresses@state == CityStateCountry@state, false, 'stateExists', null, Addresses@state + \": is not a recognized state\"),\n\texpectExists(Addresses@country == CityStateCountry@country, false, 'countryExists', null, Addresses@country+ \": is not a recognized country\"),\n\texpectExists(Addresses@customer_id == customerIDs@customer_id, false, 'customerIDExists', null, toString(Addresses@customer_id) + \": is not a recognized customer \")) ~> AddressesValidation\nSelect1 derive(address1 = upper(address1),\n\t\taddress2 = upper(address2),\n\t\taddress3 = upper(address3),\n\t\taddress_type = initCap(address_type),\n\t\tphone = substring(phone, 1, 1) + \"-\" + substring(phone, 2, 3) + \"-\" + substring(phone, 5, 3) + \"-\" + substring(phone, 8, 4),\n\t\tFax = substring(Fax, 1, 1) + \"-\" + substring(Fax, 2, 3) + \"-\" + substring(Fax, 5, 3) + \"-\" + substring(Fax, 8, 4)) ~> AddressesTransformation\nAddresses derive(address1 = iif(isNull(address1), \"N/A\", address1),\n\t\taddress2 = iif(isNull(address2), \"N/A\", address2),\n\t\taddress3 = iif(isNull(address3), \"N/A\", address3)) ~> AddressesWna\nCustomers select(mapColumn(\n\t\tcustomer_id\n\t),\n\tskipDuplicateMapInputs: true,\n\tskipDuplicateMapOutputs: true) ~> customerIDs\nAddressesTransformation filter(isError()) ~> Filter1\nAddressesValidation select(mapColumn(\n\t\taddress_id,\n\t\taddress_type,\n\t\taddress1,\n\t\taddress2,\n\t\taddress3,\n\t\tcity = Addresses@city,\n\t\tstate = Addresses@state,\n\t\tcountry = Addresses@country,\n\t\tzipcode,\n\t\tphone,\n\t\temail,\n\t\tFax,\n\t\tcustomer_id = Addresses@customer_id\n\t),\n\tskipDuplicateMapInputs: true,\n\tskipDuplicateMapOutputs: true) ~> Select1\nFilter1 derive(addressIdNotNull = iif(hasError(\"addressIdNotNull\"), 'Address Id is null', \"\"),\n\t\taddressTypeValid = iif(hasError(\"addressTypeValid\"), address_type + \" is not valid address type\", \"\"),\n\t\taddress1NotBlank = iif(hasError(\"address1NotBlank\"), \"Address 1 is blank\", \"\"),\n\t\taddress2NotBlank = iif(hasError(\"address2NotBlank\"), \"Address 2 is blank\", \"\"),\n\t\taddress3NotBlank = iif(hasError(\"address3NotBlank\"), \"Address 3 is blank\", \"\"),\n\t\tzipcodeNumeric = iif(hasError(\"zipcodeNumeric\"), \"Zipcode is not numeric\", \"\"),\n\t\tphoneNumberNot11digits = iif(hasError(\"phoneNumberNot11digits\"), toString(phone) + \" Invalid Phone number length\", \"\"),\n\t\tvalidEmail = iif(hasError(\"validEmail\"), email + \" is an invalid email\", \"\"),\n\t\tFaxNumberNot11digits = iif(hasError(\"FaxNumberNot11digits\"), toString(Fax) + \" Invalid Phone number length\", \"\"),\n\t\tcityExists = iif(hasError(\"cityExists\"), city + \": is not a recognized city\", \"\"),\n\t\tstateExists = iif(hasError(\"stateExists\"), state+ \": is not a recognized state\", \"\"),\n\t\tcountryExists = iif(hasError(\"countryExists\"), country+ \": is not a recognized country\", \"\"),\n\t\tcustomerIDExists = iif(hasError(\"customerIDExists\"), toString(customer_id) + \": is not a recognized customer \", \"\")) ~> DerivedColumn1\nDerivedColumn1 select(mapColumn(\n\t\taddress_id,\n\t\taddressIdNotNull,\n\t\taddressTypeValid,\n\t\taddress1NotBlank,\n\t\taddress2NotBlank,\n\t\taddress3NotBlank,\n\t\tzipcodeNumeric,\n\t\tphoneNumberNot11digits,\n\t\tvalidEmail,\n\t\tFaxNumberNot11digits,\n\t\tcityExists,\n\t\tstateExists,\n\t\tcountryExists,\n\t\tcustomerIDexists = customerIDExists\n\t),\n\tskipDuplicateMapInputs: true,\n\tskipDuplicateMapOutputs: true) ~> AddressIDErrors\nAddressesTransformation sink(allowSchemaDrift: true,\n\tvalidateSchema: false,\n\tinput(\n\t\tcity as string,\n\t\tstate as string,\n\t\tcountry as string\n\t),\n\tumask: 0022,\n\tpreCommands: [],\n\tpostCommands: [],\n\tskipDuplicateMapInputs: true,\n\tskipDuplicateMapOutputs: true) ~> AddressesClean\nAddressIDErrors sink(allowSchemaDrift: true,\n\tvalidateSchema: true,\n\tpartitionFileNames:['AddressErrors.csv'],\n\tumask: 0022,\n\tpreCommands: [],\n\tpostCommands: [],\n\tskipDuplicateMapInputs: true,\n\tskipDuplicateMapOutputs: true,\n\tsaveOrder: 0,\n\tpartitionBy('hash', 1)) ~> addressesErrors"
+					"script": "source(output(\n\t\taddress_id as long,\n\t\taddress_type as string,\n\t\taddress1 as string,\n\t\taddress2 as string,\n\t\taddress3 as string,\n\t\tcity as string,\n\t\tstate as string,\n\t\tcountry as string,\n\t\tzipcode as string,\n\t\tphone as string,\n\t\temail as string,\n\t\tFax as string,\n\t\tcustomer_id as long\n\t),\n\tallowSchemaDrift: false,\n\tvalidateSchema: false,\n\tignoreNoFilesFound: false,\n\tformat: 'parquet') ~> Addresses\nsource(output(\n\t\tcustomer_id as long\n\t),\n\tallowSchemaDrift: false,\n\tvalidateSchema: false,\n\tignoreNoFilesFound: false,\n\tformat: 'parquet',\n\tdateFormats: ['MM/dd/yyyy'],\n\ttimestampFormats: ['MM/dd/yyyy HH:mm:ss']) ~> Customers\nsource(output(\n\t\tCity as string,\n\t\tState as string,\n\t\tCountry as string\n\t),\n\tallowSchemaDrift: false,\n\tvalidateSchema: false,\n\tignoreNoFilesFound: false,\n\tformat: 'parquet') ~> CityStateCountry\nAddressesWna assert(expectTrue(!isNull(address_id), false, 'addressIdNotNull', null, 'Address Id is null'),\n\texpectTrue(lower(address_type) == 'residence' || lower(address_type) == 'business', false, 'addressTypeValid', null, \"Address is not residence or business\"),\n\texpectTrue(address1 != \"\", false, 'address1NotBlank', null, 'Address1 is blank'),\n\texpectTrue(isInteger(zipcode), false, 'zipcodeNumeric', null, \"Zipcode is not numeric\"),\n\texpectTrue(length(toString(phone)) == 11, false, 'phoneNumberNot11digits', null, toString(phone) + \" Invalid Phone number length\"),\n\texpectTrue(regexMatch(email, `^\\w+([-+.']\\w+)*@\\w+([-.]\\w+)*\\.\\w+([-.]\\w+)*$`), false, 'validEmail', null, email + \" is an invalid email\"),\n\texpectTrue(length(toString(Fax)) == 11, false, 'FaxNumberNot11digits', null, toString(Fax) + \" Invalid Phone number length\")) ~> AddressesValidation\nAddressesValidation derive(address1 = upper(address1),\n\t\taddress2 = upper(address2),\n\t\taddress3 = upper(address3),\n\t\taddress_type = initCap(address_type),\n\t\tphone = substring(phone, 1, 1) + \"-\" + substring(phone, 2, 3) + \"-\" + substring(phone, 5, 3) + \"-\" + substring(phone, 8, 4),\n\t\tFax = substring(Fax, 1, 1) + \"-\" + substring(Fax, 2, 3) + \"-\" + substring(Fax, 5, 3) + \"-\" + substring(Fax, 8, 4)) ~> AddressesTransformation\nAddresses derive(address1 = iif(isNull(address1), \"N/A\", address1),\n\t\taddress2 = iif(isNull(address2), \"N/A\", address2),\n\t\taddress3 = iif(isNull(address3), \"N/A\", address3)) ~> AddressesWna\nAddressesTransformation filter(isError()) ~> Filter1\nAddressesTransformation, Customers exists(Addresses@customer_id == Customers@customer_id,\n\tnegate:true,\n\tbroadcast: 'auto')~> CustomerIDExists\nFilter1, CustomerIDExists, CityStateCountryExists union(byName: true)~> Union1\nAddressesTransformation, CityStateCountry exists(Addresses@city == CityStateCountry@City\n\t&& Addresses@state == CityStateCountry@State\n\t&& Addresses@country == CityStateCountry@Country,\n\tnegate:true,\n\tbroadcast: 'auto')~> CityStateCountryExists\nAddressesTransformation sink(allowSchemaDrift: true,\n\tvalidateSchema: true,\n\tformat: 'parquet',\n\ttruncate: true,\n\tumask: 0022,\n\tpreCommands: [],\n\tpostCommands: [],\n\tskipDuplicateMapInputs: true,\n\tskipDuplicateMapOutputs: true) ~> AddressesClean\nUnion1 sink(allowSchemaDrift: true,\n\tvalidateSchema: true,\n\tformat: 'parquet',\n\ttruncate: true,\n\tumask: 0022,\n\tpreCommands: [],\n\tpostCommands: [],\n\tskipDuplicateMapInputs: true,\n\tskipDuplicateMapOutputs: true,\n\tsaveOrder: 0) ~> addressesErrors"
 				}
 			},
 			"dependsOn": [
 				"[concat(variables('factoryId'), '/datasets/Addresses')]",
-				"[concat(variables('factoryId'), '/datasets/Customers')]",
-				"[concat(variables('factoryId'), '/datasets/CityStateCountry')]",
+				"[concat(variables('factoryId'), '/datasets/customerIDs')]",
+				"[concat(variables('factoryId'), '/datasets/cityStateCountry')]",
 				"[concat(variables('factoryId'), '/datasets/Addresses_clean')]",
-				"[concat(variables('factoryId'), '/datasets/addressesErrors')]"
+				"[concat(variables('factoryId'), '/datasets/Addresses_errors')]"
 			]
 		},
 		{
-			"name": "[concat(parameters('factoryName'), '/ETL')]",
-			"type": "Microsoft.DataFactory/factories/pipelines",
-			"apiVersion": "2018-06-01",
-			"properties": {
-				"activities": [
-					{
-						"name": "addressesETL",
-						"type": "ExecuteDataFlow",
-						"dependsOn": [],
-						"policy": {
-							"timeout": "1.00:00:00",
-							"retry": 0,
-							"retryIntervalInSeconds": 30,
-							"secureOutput": false,
-							"secureInput": false
-						},
-						"userProperties": [],
-						"typeProperties": {
-							"dataflow": {
-								"referenceName": "addressesETL",
-								"type": "DataFlowReference",
-								"parameters": {},
-								"datasetParameters": {
-									"Addresses": {},
-									"Customers": {},
-									"CityStateCountry": {},
-									"AddressesClean": {},
-									"addressesErrors": {}
-								}
-							},
-							"staging": {},
-							"compute": {
-								"coreCount": 8,
-								"computeType": "General"
-							},
-							"traceLevel": "Fine"
-						}
-					},
-					{
-						"name": "customerETL",
-						"type": "ExecuteDataFlow",
-						"dependsOn": [
-							{
-								"activity": "addressesETL",
-								"dependencyConditions": [
-									"Succeeded"
-								]
-							}
-						],
-						"policy": {
-							"timeout": "1.00:00:00",
-							"retry": 0,
-							"retryIntervalInSeconds": 30,
-							"secureOutput": false,
-							"secureInput": false
-						},
-						"userProperties": [],
-						"typeProperties": {
-							"dataflow": {
-								"referenceName": "customerETL",
-								"type": "DataFlowReference",
-								"parameters": {},
-								"datasetParameters": {
-									"Customers": {},
-									"CustomersClean": {},
-									"CustomersErrors": {}
-								}
-							},
-							"staging": {},
-							"compute": {
-								"coreCount": 8,
-								"computeType": "General"
-							},
-							"traceLevel": "Fine"
-						}
-					},
-					{
-						"name": "productsETL",
-						"type": "ExecuteDataFlow",
-						"dependsOn": [
-							{
-								"activity": "customerETL",
-								"dependencyConditions": [
-									"Succeeded"
-								]
-							}
-						],
-						"policy": {
-							"timeout": "1.00:00:00",
-							"retry": 0,
-							"retryIntervalInSeconds": 30,
-							"secureOutput": false,
-							"secureInput": false
-						},
-						"userProperties": [],
-						"typeProperties": {
-							"dataflow": {
-								"referenceName": "productsETL",
-								"type": "DataFlowReference",
-								"parameters": {},
-								"datasetParameters": {
-									"Customers": {},
-									"Products": {},
-									"ProductsClean": {},
-									"productsErrors": {}
-								}
-							},
-							"staging": {},
-							"compute": {
-								"coreCount": 8,
-								"computeType": "General"
-							},
-							"traceLevel": "Fine"
-						}
-					},
-					{
-						"name": "transactionsETL",
-						"type": "ExecuteDataFlow",
-						"dependsOn": [
-							{
-								"activity": "productsETL",
-								"dependencyConditions": [
-									"Succeeded"
-								]
-							}
-						],
-						"policy": {
-							"timeout": "1.00:00:00",
-							"retry": 0,
-							"retryIntervalInSeconds": 30,
-							"secureOutput": false,
-							"secureInput": false
-						},
-						"userProperties": [],
-						"typeProperties": {
-							"dataflow": {
-								"referenceName": "transactionsETL",
-								"type": "DataFlowReference",
-								"parameters": {},
-								"datasetParameters": {
-									"Customers": {},
-									"Transactions": {},
-									"TransactionsClean": {},
-									"transactionsErrors": {}
-								}
-							},
-							"staging": {},
-							"compute": {
-								"coreCount": 8,
-								"computeType": "General"
-							},
-							"traceLevel": "Fine"
-						}
-					},
-					{
-						"name": "srsETL",
-						"type": "ExecuteDataFlow",
-						"dependsOn": [
-							{
-								"activity": "transactionsETL",
-								"dependencyConditions": [
-									"Succeeded"
-								]
-							}
-						],
-						"policy": {
-							"timeout": "1.00:00:00",
-							"retry": 0,
-							"retryIntervalInSeconds": 30,
-							"secureOutput": false,
-							"secureInput": false
-						},
-						"userProperties": [],
-						"typeProperties": {
-							"dataflow": {
-								"referenceName": "srsETL",
-								"type": "DataFlowReference",
-								"parameters": {},
-								"datasetParameters": {
-									"Customers": {},
-									"SRS": {},
-									"SrsClean": {},
-									"srsErrors": {}
-								}
-							},
-							"staging": {},
-							"compute": {
-								"coreCount": 8,
-								"computeType": "General"
-							},
-							"traceLevel": "Fine"
-						}
-					}
-				],
-				"policy": {
-					"elapsedTimeMetric": {},
-					"cancelAfter": {}
-				},
-				"annotations": []
-			},
-			"dependsOn": [
-				"[concat(variables('factoryId'), '/dataflows/addressesETL')]",
-				"[concat(variables('factoryId'), '/dataflows/customerETL')]",
-				"[concat(variables('factoryId'), '/dataflows/productsETL')]",
-				"[concat(variables('factoryId'), '/dataflows/transactionsETL')]",
-				"[concat(variables('factoryId'), '/dataflows/srsETL')]"
-			]
-		},
-		{
-			"name": "[concat(parameters('factoryName'), '/customerErrors')]",
-			"type": "Microsoft.DataFactory/factories/datasets",
-			"apiVersion": "2018-06-01",
-			"properties": {
-				"linkedServiceName": {
-					"referenceName": "wilding360datalake",
-					"type": "LinkedServiceReference"
-				},
-				"folder": {
-					"name": "Errors"
-				},
-				"annotations": [],
-				"type": "DelimitedText",
-				"typeProperties": {
-					"location": {
-						"type": "AzureBlobFSLocation",
-						"fileSystem": "errors"
-					},
-					"columnDelimiter": ",",
-					"escapeChar": "\\",
-					"firstRowAsHeader": true,
-					"quoteChar": "\""
-				},
-				"schema": []
-			},
-			"dependsOn": [
-				"[concat(variables('factoryId'), '/linkedServices/wilding360datalake')]"
-			]
-		},
-		{
-			"name": "[concat(parameters('factoryName'), '/srsETL')]",
+			"name": "[concat(parameters('factoryName'), '/convertSourceFilesParquet')]",
 			"type": "Microsoft.DataFactory/factories/dataflows",
 			"apiVersion": "2018-06-01",
 			"properties": {
+				"folder": {
+					"name": "old"
+				},
 				"type": "MappingDataFlow",
 				"typeProperties": {
 					"sources": [
 						{
 							"dataset": {
-								"referenceName": "Customers",
+								"referenceName": "cAddresses",
+								"type": "DatasetReference"
+							},
+							"name": "Addresses"
+						},
+						{
+							"dataset": {
+								"referenceName": "cCustomers",
 								"type": "DatasetReference"
 							},
 							"name": "Customers"
 						},
 						{
 							"dataset": {
-								"referenceName": "SRS",
+								"referenceName": "cProducts",
 								"type": "DatasetReference"
 							},
-							"name": "SRS"
+							"name": "Products"
 						}
 					],
 					"sinks": [
 						{
 							"dataset": {
-								"referenceName": "Srs_clean",
+								"referenceName": "Addresses",
 								"type": "DatasetReference"
 							},
-							"name": "SrsClean"
+							"name": "sink1"
 						},
-						{
-							"dataset": {
-								"referenceName": "srsErrors",
-								"type": "DatasetReference"
-							},
-							"name": "srsErrors"
-						}
-					],
-					"transformations": [
-						{
-							"name": "customerIDs"
-						},
-						{
-							"name": "Assert1"
-						},
-						{
-							"name": "Filter1"
-						}
-					],
-					"script": "source(output(\n\t\tcustomer_id as long,\n\t\tsource_id as string,\n\t\tfirst_name as string,\n\t\tmiddle_name as string,\n\t\tlast_name as string,\n\t\tdob as timestamp,\n\t\tgender as string,\n\t\tnationality as string,\n\t\tmarital_status as string,\n\t\toccupation as string,\n\t\tavg_family_size as integer,\n\t\tincome_level as string,\n\t\tdate_onboarded as timestamp,\n\t\tcreated_date as timestamp,\n\t\tupdated_date as timestamp,\n\t\teffective_start_date as timestamp,\n\t\teffective_end_date as timestamp,\n\t\tIdentifier_type as string,\n\t\tidentifier as string\n\t),\n\tallowSchemaDrift: true,\n\tvalidateSchema: false,\n\tignoreNoFilesFound: false,\n\tdateFormats: ['MM/dd/yyyy'],\n\ttimestampFormats: ['MM/dd/yyyy HH:mm:ss']) ~> Customers\nsource(output(\n\t\tsr_id as integer,\n\t\tcustomer_id as integer,\n\t\tproduct_id as integer,\n\t\tsr_description as string,\n\t\tsr_open_date as date,\n\t\tsr_close_date as date,\n\t\tsr_type as string,\n\t\tchannel as string,\n\t\tsr_cust_feedback as string\n\t),\n\tallowSchemaDrift: false,\n\tvalidateSchema: false,\n\tignoreNoFilesFound: false,\n\tdateFormats: ['yyyy/MM/dd']) ~> SRS\nCustomers select(mapColumn(\n\t\tcustomer_id\n\t),\n\tskipDuplicateMapInputs: true,\n\tskipDuplicateMapOutputs: true) ~> customerIDs\nSRS, customerIDs assert(expectTrue(!isNull(sr_id), false, 'srIDNotNull'),\n\texpectExists(SRS@customer_id == customerIDs@customer_id, false, 'custIDExists'),\n\texpectTrue(length(sr_description) > 0 && length(sr_description) <= 100, false, 'descriptionLength'),\n\texpectTrue(sr_close_date >= sr_open_date, false, 'validCloseDate'),\n\texpectTrue(length(sr_cust_feedback) > 0 && length(sr_cust_feedback) <= 100, false, 'custFeedbackLength')) ~> Assert1\nAssert1 filter(isError()) ~> Filter1\nAssert1 sink(allowSchemaDrift: true,\n\tvalidateSchema: false,\n\tumask: 0022,\n\tpreCommands: [],\n\tpostCommands: [],\n\tskipDuplicateMapInputs: true,\n\tskipDuplicateMapOutputs: true) ~> SrsClean\nFilter1 sink(allowSchemaDrift: true,\n\tvalidateSchema: false,\n\tpartitionFileNames:['srsErrors.csv'],\n\tumask: 0022,\n\tpreCommands: [],\n\tpostCommands: [],\n\tskipDuplicateMapInputs: true,\n\tskipDuplicateMapOutputs: true,\n\tpartitionBy('hash', 1)) ~> srsErrors"
-				}
-			},
-			"dependsOn": [
-				"[concat(variables('factoryId'), '/datasets/Customers')]",
-				"[concat(variables('factoryId'), '/datasets/SRS')]",
-				"[concat(variables('factoryId'), '/datasets/Srs_clean')]",
-				"[concat(variables('factoryId'), '/datasets/srsErrors')]"
-			]
-		},
-		{
-			"name": "[concat(parameters('factoryName'), '/productsErrors')]",
-			"type": "Microsoft.DataFactory/factories/datasets",
-			"apiVersion": "2018-06-01",
-			"properties": {
-				"linkedServiceName": {
-					"referenceName": "wilding360datalake",
-					"type": "LinkedServiceReference"
-				},
-				"folder": {
-					"name": "Errors"
-				},
-				"annotations": [],
-				"type": "DelimitedText",
-				"typeProperties": {
-					"location": {
-						"type": "AzureBlobFSLocation",
-						"fileSystem": "errors"
-					},
-					"columnDelimiter": ",",
-					"escapeChar": "\\",
-					"firstRowAsHeader": true,
-					"quoteChar": "\""
-				},
-				"schema": []
-			},
-			"dependsOn": [
-				"[concat(variables('factoryId'), '/linkedServices/wilding360datalake')]"
-			]
-		},
-		{
-			"name": "[concat(parameters('factoryName'), '/Srs_clean')]",
-			"type": "Microsoft.DataFactory/factories/datasets",
-			"apiVersion": "2018-06-01",
-			"properties": {
-				"linkedServiceName": {
-					"referenceName": "wilding360datalake",
-					"type": "LinkedServiceReference"
-				},
-				"folder": {
-					"name": "Clean"
-				},
-				"annotations": [],
-				"type": "DelimitedText",
-				"typeProperties": {
-					"location": {
-						"type": "AzureBlobFSLocation",
-						"folderPath": "srs",
-						"fileSystem": "clean"
-					},
-					"columnDelimiter": ",",
-					"escapeChar": "\\",
-					"firstRowAsHeader": true,
-					"quoteChar": "\""
-				},
-				"schema": []
-			},
-			"dependsOn": [
-				"[concat(variables('factoryId'), '/linkedServices/wilding360datalake')]"
-			]
-		},
-		{
-			"name": "[concat(parameters('factoryName'), '/Transactions_clean')]",
-			"type": "Microsoft.DataFactory/factories/datasets",
-			"apiVersion": "2018-06-01",
-			"properties": {
-				"linkedServiceName": {
-					"referenceName": "wilding360datalake",
-					"type": "LinkedServiceReference"
-				},
-				"folder": {
-					"name": "Clean"
-				},
-				"annotations": [],
-				"type": "DelimitedText",
-				"typeProperties": {
-					"location": {
-						"type": "AzureBlobFSLocation",
-						"folderPath": "transactions",
-						"fileSystem": "clean"
-					},
-					"columnDelimiter": ",",
-					"escapeChar": "\\",
-					"firstRowAsHeader": true,
-					"quoteChar": "\""
-				},
-				"schema": []
-			},
-			"dependsOn": [
-				"[concat(variables('factoryId'), '/linkedServices/wilding360datalake')]"
-			]
-		},
-		{
-			"name": "[concat(parameters('factoryName'), '/Products_clean')]",
-			"type": "Microsoft.DataFactory/factories/datasets",
-			"apiVersion": "2018-06-01",
-			"properties": {
-				"linkedServiceName": {
-					"referenceName": "wilding360datalake",
-					"type": "LinkedServiceReference"
-				},
-				"folder": {
-					"name": "Clean"
-				},
-				"annotations": [],
-				"type": "DelimitedText",
-				"typeProperties": {
-					"location": {
-						"type": "AzureBlobFSLocation",
-						"folderPath": "products",
-						"fileSystem": "clean"
-					},
-					"columnDelimiter": ",",
-					"escapeChar": "\\",
-					"firstRowAsHeader": true,
-					"quoteChar": "\""
-				},
-				"schema": []
-			},
-			"dependsOn": [
-				"[concat(variables('factoryId'), '/linkedServices/wilding360datalake')]"
-			]
-		},
-		{
-			"name": "[concat(parameters('factoryName'), '/srsErrors')]",
-			"type": "Microsoft.DataFactory/factories/datasets",
-			"apiVersion": "2018-06-01",
-			"properties": {
-				"linkedServiceName": {
-					"referenceName": "wilding360datalake",
-					"type": "LinkedServiceReference"
-				},
-				"folder": {
-					"name": "Errors"
-				},
-				"annotations": [],
-				"type": "DelimitedText",
-				"typeProperties": {
-					"location": {
-						"type": "AzureBlobFSLocation",
-						"fileSystem": "errors"
-					},
-					"columnDelimiter": ",",
-					"escapeChar": "\\",
-					"firstRowAsHeader": true,
-					"quoteChar": "\""
-				},
-				"schema": []
-			},
-			"dependsOn": [
-				"[concat(variables('factoryId'), '/linkedServices/wilding360datalake')]"
-			]
-		},
-		{
-			"name": "[concat(parameters('factoryName'), '/transactionErrors')]",
-			"type": "Microsoft.DataFactory/factories/datasets",
-			"apiVersion": "2018-06-01",
-			"properties": {
-				"linkedServiceName": {
-					"referenceName": "wilding360datalake",
-					"type": "LinkedServiceReference"
-				},
-				"folder": {
-					"name": "Errors"
-				},
-				"annotations": [],
-				"type": "DelimitedText",
-				"typeProperties": {
-					"location": {
-						"type": "AzureBlobFSLocation",
-						"fileSystem": "errors"
-					},
-					"columnDelimiter": ",",
-					"escapeChar": "\\",
-					"firstRowAsHeader": true,
-					"quoteChar": "\""
-				},
-				"schema": []
-			},
-			"dependsOn": [
-				"[concat(variables('factoryId'), '/linkedServices/wilding360datalake')]"
-			]
-		},
-		{
-			"name": "[concat(parameters('factoryName'), '/transactionsETL')]",
-			"type": "Microsoft.DataFactory/factories/dataflows",
-			"apiVersion": "2018-06-01",
-			"properties": {
-				"type": "MappingDataFlow",
-				"typeProperties": {
-					"sources": [
 						{
 							"dataset": {
 								"referenceName": "Customers",
 								"type": "DatasetReference"
 							},
-							"name": "Customers"
+							"name": "sink2"
 						},
 						{
 							"dataset": {
-								"referenceName": "Transactions",
+								"referenceName": "Products",
 								"type": "DatasetReference"
 							},
-							"name": "Transactions"
+							"name": "sink3"
 						}
 					],
-					"sinks": [
-						{
-							"dataset": {
-								"referenceName": "Transactions_clean",
-								"type": "DatasetReference"
-							},
-							"name": "TransactionsClean"
-						},
-						{
-							"dataset": {
-								"referenceName": "transactionErrors",
-								"type": "DatasetReference"
-							},
-							"name": "transactionsErrors"
-						}
-					],
-					"transformations": [
-						{
-							"name": "customerIDs"
-						},
-						{
-							"name": "Assert1"
-						},
-						{
-							"name": "Filter1"
-						}
-					],
-					"script": "source(output(\n\t\tcustomer_id as long,\n\t\tsource_id as string,\n\t\tfirst_name as string,\n\t\tmiddle_name as string,\n\t\tlast_name as string,\n\t\tdob as timestamp,\n\t\tgender as string,\n\t\tnationality as string,\n\t\tmarital_status as string,\n\t\toccupation as string,\n\t\tavg_family_size as integer,\n\t\tincome_level as string,\n\t\tdate_onboarded as timestamp,\n\t\tcreated_date as timestamp,\n\t\tupdated_date as timestamp,\n\t\teffective_start_date as timestamp,\n\t\teffective_end_date as timestamp,\n\t\tIdentifier_type as string,\n\t\tidentifier as string\n\t),\n\tallowSchemaDrift: true,\n\tvalidateSchema: false,\n\tignoreNoFilesFound: false,\n\tdateFormats: ['MM/dd/yyyy'],\n\ttimestampFormats: ['MM/dd/yyyy HH:mm:ss']) ~> Customers\nsource(output(\n\t\ttransaction_id as integer,\n\t\tcustomer_id as integer,\n\t\tproduct_id as integer,\n\t\tmerchant_name as string,\n\t\ttransaction_description as string,\n\t\ttransaction_amount as integer,\n\t\ttype_deposit_withdrawal as string,\n\t\ttransaction_date as date,\n\t\tchannel as string\n\t),\n\tallowSchemaDrift: false,\n\tvalidateSchema: false,\n\tignoreNoFilesFound: false,\n\tdateFormats: ['yyyy/MM/dd']) ~> Transactions\nCustomers select(mapColumn(\n\t\tcustomer_id\n\t),\n\tskipDuplicateMapInputs: true,\n\tskipDuplicateMapOutputs: true) ~> customerIDs\nTransactions, customerIDs assert(expectTrue(!isNull(transaction_id), false, 'srIDNotNull'),\n\texpectExists(Transactions@customer_id == customerIDs@customer_id, false, 'custIDExists'),\n\texpectTrue(!isNull(transaction_amount), false, 'transactionAmt')) ~> Assert1\nAssert1 filter(isError()) ~> Filter1\nAssert1 sink(allowSchemaDrift: true,\n\tvalidateSchema: false,\n\tumask: 0022,\n\tpreCommands: [],\n\tpostCommands: [],\n\tskipDuplicateMapInputs: true,\n\tskipDuplicateMapOutputs: true) ~> TransactionsClean\nFilter1 sink(allowSchemaDrift: true,\n\tvalidateSchema: false,\n\tpartitionFileNames:['transactionsErrors.csv'],\n\tumask: 0022,\n\tpreCommands: [],\n\tpostCommands: [],\n\tskipDuplicateMapInputs: true,\n\tskipDuplicateMapOutputs: true,\n\tpartitionBy('hash', 1)) ~> transactionsErrors"
+					"transformations": [],
+					"script": "source(output(\n\t\taddress_id as long,\n\t\taddress_type as string,\n\t\taddress1 as string,\n\t\taddress2 as string,\n\t\taddress3 as string,\n\t\tcity as string,\n\t\tstate as string,\n\t\tcountry as string,\n\t\tzipcode as string,\n\t\tphone as string,\n\t\temail as string,\n\t\tFax as string,\n\t\tcustomer_id as long\n\t),\n\tallowSchemaDrift: true,\n\tvalidateSchema: false,\n\tignoreNoFilesFound: false) ~> Addresses\nsource(output(\n\t\tcustomer_id as long,\n\t\tsource_id as string,\n\t\tfirst_name as string,\n\t\tmiddle_name as string,\n\t\tlast_name as string,\n\t\tdob as date,\n\t\tgender as string,\n\t\tnationality as string,\n\t\tmarital_status as string,\n\t\toccupation as string,\n\t\tavg_family_size as integer,\n\t\tincome_level as string,\n\t\tdate_onboarded as date,\n\t\tcreated_date as date,\n\t\tupdated_date as date,\n\t\teffective_start_date as date,\n\t\teffective_end_date as date,\n\t\tIdentifier_type as string,\n\t\tidentifier as string\n\t),\n\tallowSchemaDrift: true,\n\tvalidateSchema: false,\n\tignoreNoFilesFound: false,\n\tdateFormats: ['MM/dd/yyyy']) ~> Customers\nsource(output(\n\t\tproduct_id as long,\n\t\tproduct_name as string,\n\t\tproduct_type as string,\n\t\tproduct_description as string,\n\t\tissue_date as date,\n\t\tvalid_till_date as date,\n\t\taccount_status as string,\n\t\tcredit_card_limit as long,\n\t\tinterest_rate as double,\n\t\ttenure as long,\n\t\tservice_charges as long,\n\t\tcustomer_id as long,\n\t\tfd_principal_amount as long,\n\t\tloan_collateral_value as long,\n\t\tloan_amount as long\n\t),\n\tallowSchemaDrift: true,\n\tvalidateSchema: false,\n\tignoreNoFilesFound: false,\n\tdateFormats: ['yyyy/MM/dd']) ~> Products\nAddresses sink(allowSchemaDrift: true,\n\tvalidateSchema: false,\n\tformat: 'parquet',\n\tumask: 0022,\n\tpreCommands: [],\n\tpostCommands: [],\n\tskipDuplicateMapInputs: true,\n\tskipDuplicateMapOutputs: true) ~> sink1\nCustomers sink(allowSchemaDrift: true,\n\tvalidateSchema: false,\n\tformat: 'parquet',\n\tumask: 0022,\n\tpreCommands: [],\n\tpostCommands: [],\n\tskipDuplicateMapInputs: true,\n\tskipDuplicateMapOutputs: true) ~> sink2\nProducts sink(allowSchemaDrift: true,\n\tvalidateSchema: false,\n\tformat: 'parquet',\n\tumask: 0022,\n\tpreCommands: [],\n\tpostCommands: [],\n\tskipDuplicateMapInputs: true,\n\tskipDuplicateMapOutputs: true) ~> sink3"
 				}
 			},
 			"dependsOn": [
+				"[concat(variables('factoryId'), '/datasets/cAddresses')]",
+				"[concat(variables('factoryId'), '/datasets/cCustomers')]",
+				"[concat(variables('factoryId'), '/datasets/cProducts')]",
+				"[concat(variables('factoryId'), '/datasets/Addresses')]",
 				"[concat(variables('factoryId'), '/datasets/Customers')]",
-				"[concat(variables('factoryId'), '/datasets/Transactions')]",
-				"[concat(variables('factoryId'), '/datasets/Transactions_clean')]",
-				"[concat(variables('factoryId'), '/datasets/transactionErrors')]"
-			]
-		},
-		{
-			"name": "[concat(parameters('factoryName'), '/auxLists')]",
-			"type": "Microsoft.DataFactory/factories/pipelines",
-			"apiVersion": "2018-06-01",
-			"properties": {
-				"activities": [
-					{
-						"name": "acustomerAuxLists",
-						"type": "ExecuteDataFlow",
-						"dependsOn": [],
-						"policy": {
-							"timeout": "1.00:00:00",
-							"retry": 0,
-							"retryIntervalInSeconds": 30,
-							"secureOutput": false,
-							"secureInput": false
-						},
-						"userProperties": [],
-						"typeProperties": {
-							"dataflow": {
-								"referenceName": "customerAuxLists",
-								"type": "DataFlowReference",
-								"parameters": {},
-								"datasetParameters": {
-									"Customers": {},
-									"Occupations": {},
-									"CustomerIDs": {}
-								}
-							},
-							"staging": {},
-							"compute": {
-								"coreCount": 8,
-								"computeType": "General"
-							},
-							"traceLevel": "Fine"
-						}
-					}
-				],
-				"policy": {
-					"elapsedTimeMetric": {},
-					"cancelAfter": {}
-				},
-				"annotations": []
-			},
-			"dependsOn": [
-				"[concat(variables('factoryId'), '/dataflows/customerAuxLists')]"
+				"[concat(variables('factoryId'), '/datasets/Products')]"
 			]
 		},
 		{
@@ -1674,7 +3324,7 @@
 					"sinks": [
 						{
 							"dataset": {
-								"referenceName": "Occupations",
+								"referenceName": "occupations",
 								"type": "DatasetReference"
 							},
 							"name": "Occupations"
@@ -1707,69 +3357,637 @@
 							"name": "Select4"
 						}
 					],
-					"script": "source(output(\n\t\tcustomer_id as long,\n\t\tsource_id as string,\n\t\tfirst_name as string,\n\t\tmiddle_name as string,\n\t\tlast_name as string,\n\t\tdob as string,\n\t\tgender as string,\n\t\tnationality as string,\n\t\tmarital_status as string,\n\t\toccupation as string,\n\t\tavg_family_size as string,\n\t\tincome_level as string,\n\t\tdate_onboarded as string,\n\t\tcreated_date as string,\n\t\tupdated_date as string,\n\t\teffective_start_date as string,\n\t\teffective_end_date as string,\n\t\tIdentifier_type as string,\n\t\tidentifier as string\n\t),\n\tallowSchemaDrift: true,\n\tvalidateSchema: false,\n\tignoreNoFilesFound: false) ~> Customers\nSelect1 aggregate(groupBy(customer_id),\n\tcount = count(customer_id)) ~> Aggregate1\nCustomers select(mapColumn(\n\t\tcustomer_id\n\t),\n\tskipDuplicateMapInputs: true,\n\tskipDuplicateMapOutputs: true) ~> Select1\nCustomers select(mapColumn(\n\t\toccupation\n\t),\n\tskipDuplicateMapInputs: true,\n\tskipDuplicateMapOutputs: true) ~> Select2\nSelect2 aggregate(groupBy(occupation),\n\tcount = count(occupation)) ~> Aggregate2\nAggregate1 select(mapColumn(\n\t\tcustomer_id\n\t),\n\tskipDuplicateMapInputs: true,\n\tskipDuplicateMapOutputs: true) ~> Select3\nAggregate2 select(mapColumn(\n\t\toccupation\n\t),\n\tskipDuplicateMapInputs: true,\n\tskipDuplicateMapOutputs: true) ~> Select4\nSelect4 sink(allowSchemaDrift: true,\n\tvalidateSchema: false,\n\tformat: 'parquet',\n\tumask: 0022,\n\tpreCommands: [],\n\tpostCommands: [],\n\tskipDuplicateMapInputs: true,\n\tskipDuplicateMapOutputs: true) ~> Occupations\nSelect3 sink(allowSchemaDrift: true,\n\tvalidateSchema: false,\n\tformat: 'parquet',\n\tumask: 0022,\n\tpreCommands: [],\n\tpostCommands: [],\n\tskipDuplicateMapInputs: true,\n\tskipDuplicateMapOutputs: true) ~> CustomerIDs"
+					"script": "source(output(\n\t\tcustomer_id as long,\n\t\tsource_id as string,\n\t\tfirst_name as string,\n\t\tmiddle_name as string,\n\t\tlast_name as string,\n\t\tdob as timestamp,\n\t\tgender as string,\n\t\tnationality as string,\n\t\tmarital_status as string,\n\t\toccupation as string,\n\t\tavg_family_size as integer,\n\t\tincome_level as string,\n\t\tdate_onboarded as timestamp,\n\t\tcreated_date as timestamp,\n\t\tupdated_date as timestamp,\n\t\teffective_start_date as timestamp,\n\t\teffective_end_date as timestamp,\n\t\tIdentifier_type as string,\n\t\tidentifier as string\n\t),\n\tallowSchemaDrift: true,\n\tvalidateSchema: false,\n\tignoreNoFilesFound: false,\n\tformat: 'parquet') ~> Customers\nSelect1 aggregate(groupBy(customer_id),\n\tcount = count(customer_id)) ~> Aggregate1\nCustomers select(mapColumn(\n\t\tcustomer_id\n\t),\n\tskipDuplicateMapInputs: true,\n\tskipDuplicateMapOutputs: true) ~> Select1\nCustomers select(mapColumn(\n\t\toccupation\n\t),\n\tskipDuplicateMapInputs: true,\n\tskipDuplicateMapOutputs: true) ~> Select2\nSelect2 aggregate(groupBy(occupation),\n\tcount = count(occupation)) ~> Aggregate2\nAggregate1 select(mapColumn(\n\t\tcustomer_id\n\t),\n\tskipDuplicateMapInputs: true,\n\tskipDuplicateMapOutputs: true) ~> Select3\nAggregate2 select(mapColumn(\n\t\toccupation\n\t),\n\tskipDuplicateMapInputs: true,\n\tskipDuplicateMapOutputs: true) ~> Select4\nSelect4 sink(allowSchemaDrift: true,\n\tvalidateSchema: true,\n\tinput(\n\t\toccupation as string\n\t),\n\tformat: 'parquet',\n\ttruncate: true,\n\tumask: 0022,\n\tpreCommands: [],\n\tpostCommands: [],\n\tskipDuplicateMapInputs: true,\n\tskipDuplicateMapOutputs: true) ~> Occupations\nSelect3 sink(allowSchemaDrift: true,\n\tvalidateSchema: true,\n\tinput(\n\t\tcustomer_id as long\n\t),\n\tformat: 'parquet',\n\ttruncate: true,\n\tumask: 0022,\n\tpreCommands: [],\n\tpostCommands: [],\n\tskipDuplicateMapInputs: true,\n\tskipDuplicateMapOutputs: true) ~> CustomerIDs"
 				}
 			},
 			"dependsOn": [
 				"[concat(variables('factoryId'), '/datasets/Customers')]",
-				"[concat(variables('factoryId'), '/datasets/Occupations')]",
+				"[concat(variables('factoryId'), '/datasets/occupations')]",
 				"[concat(variables('factoryId'), '/datasets/customerIDs')]"
 			]
 		},
 		{
-			"name": "[concat(parameters('factoryName'), '/customerIDs')]",
-			"type": "Microsoft.DataFactory/factories/datasets",
+			"name": "[concat(parameters('factoryName'), '/customerETL')]",
+			"type": "Microsoft.DataFactory/factories/dataflows",
 			"apiVersion": "2018-06-01",
 			"properties": {
-				"linkedServiceName": {
-					"referenceName": "wilding360datalake",
-					"type": "LinkedServiceReference"
-				},
-				"folder": {
-					"name": "Auxiliary Tables"
-				},
-				"annotations": [],
-				"type": "Parquet",
+				"type": "MappingDataFlow",
 				"typeProperties": {
-					"location": {
-						"type": "AzureBlobFSLocation",
-						"folderPath": "customerIDs",
-						"fileSystem": "auxiliary-tables"
-					},
-					"compressionCodec": "snappy"
-				},
-				"schema": []
+					"sources": [
+						{
+							"dataset": {
+								"referenceName": "Customers",
+								"type": "DatasetReference"
+							},
+							"name": "Customers"
+						},
+						{
+							"dataset": {
+								"referenceName": "occupations",
+								"type": "DatasetReference"
+							},
+							"name": "Occupations"
+						}
+					],
+					"sinks": [
+						{
+							"dataset": {
+								"referenceName": "Customers_clean",
+								"type": "DatasetReference"
+							},
+							"name": "CustomersClean"
+						},
+						{
+							"dataset": {
+								"referenceName": "Customers_errors",
+								"type": "DatasetReference"
+							},
+							"name": "CustomersErrors"
+						}
+					],
+					"transformations": [
+						{
+							"name": "ValidatedCustomers"
+						},
+						{
+							"name": "customersTransformed"
+						},
+						{
+							"name": "hasErrors"
+						},
+						{
+							"name": "OccupationExists"
+						},
+						{
+							"name": "Union1"
+						}
+					],
+					"script": "source(output(\n\t\tcustomer_id as long,\n\t\tsource_id as string,\n\t\tfirst_name as string,\n\t\tmiddle_name as string,\n\t\tlast_name as string,\n\t\tdob as timestamp,\n\t\tgender as string,\n\t\tnationality as string,\n\t\tmarital_status as string,\n\t\toccupation as string,\n\t\tavg_family_size as integer,\n\t\tincome_level as string,\n\t\tdate_onboarded as timestamp,\n\t\tcreated_date as timestamp,\n\t\tupdated_date as timestamp,\n\t\teffective_start_date as timestamp,\n\t\teffective_end_date as timestamp,\n\t\tIdentifier_type as string,\n\t\tidentifier as string\n\t),\n\tallowSchemaDrift: false,\n\tvalidateSchema: true,\n\tignoreNoFilesFound: false,\n\tformat: 'parquet',\n\tdateFormats: ['MM/dd/yyyy'],\n\ttimestampFormats: ['MM/dd/yyyy HH:mm:ss']) ~> Customers\nsource(output(\n\t\toccupation as string\n\t),\n\tallowSchemaDrift: true,\n\tvalidateSchema: false,\n\tignoreNoFilesFound: false,\n\tformat: 'parquet') ~> Occupations\nCustomers assert(expectTrue(!isNull(customer_id), false, 'custIDNotNull', null, \"Customer Id may not be null\"),\n\texpectTrue(upper(source_id) == \"ERP\", false, 'sourceIDERP', null, source_id + \" is an invalid source id -- must be ERP\"),\n\texpectTrue(first_name != \"\", false, 'firstNameNotBlank', null, toString(customer_id) + \": First Name must not be blank\"),\n\texpectTrue(last_name != \"\", false, 'lastNameNotBlank', null, toString(customer_id) + \": Last name is blank\"),\n\texpectTrue(gender == \"Male\" || gender == \"Female\", false, 'maleOrFemale', null, gender + \": is not a valid gender\"),\n\texpectTrue(marital_status == \"Married\" || marital_status == \"Single\", false, 'maritalStatus', null, marital_status + \": is not a valid marital status\"),\n\texpectTrue(avg_family_size > 0, false, 'avgFamilyNot0', null, toString(avg_family_size) + \": is an invalid family size. Must be numeric and cannot be 0.\"),\n\texpectTrue(income_level == \"Low\" || income_level == \"Medium\" || income_level == \"High\", false, 'incomeLevelValid', null, income_level + \": is invalid income level. Must be Low-Medium-High\"),\n\texpectTrue(length(identifier) == 11, false, 'identifierLength11', null, identifier + \": is invalid identifier. Must be 11 characters long.\")) ~> ValidatedCustomers\nValidatedCustomers derive(source_id = upper(source_id),\n\t\tfirst_name = upper(first_name),\n\t\tmiddle_name = upper(middle_name),\n\t\tlast_name = upper(last_name)) ~> customersTransformed\ncustomersTransformed filter(isError()) ~> hasErrors\ncustomersTransformed, Occupations exists(Customers@occupation == Occupations@occupation,\n\tnegate:true,\n\tbroadcast: 'auto')~> OccupationExists\nhasErrors, OccupationExists union(byName: true)~> Union1\ncustomersTransformed sink(allowSchemaDrift: true,\n\tvalidateSchema: true,\n\tformat: 'parquet',\n\ttruncate: true,\n\tumask: 0022,\n\tpreCommands: [],\n\tpostCommands: [],\n\tskipDuplicateMapInputs: true,\n\tskipDuplicateMapOutputs: true) ~> CustomersClean\nUnion1 sink(allowSchemaDrift: true,\n\tvalidateSchema: true,\n\tformat: 'parquet',\n\ttruncate: true,\n\tumask: 0022,\n\tpreCommands: [],\n\tpostCommands: [],\n\tskipDuplicateMapInputs: true,\n\tskipDuplicateMapOutputs: true) ~> CustomersErrors"
+				}
 			},
 			"dependsOn": [
-				"[concat(variables('factoryId'), '/linkedServices/wilding360datalake')]"
+				"[concat(variables('factoryId'), '/datasets/Customers')]",
+				"[concat(variables('factoryId'), '/datasets/occupations')]",
+				"[concat(variables('factoryId'), '/datasets/Customers_clean')]",
+				"[concat(variables('factoryId'), '/datasets/Customers_errors')]"
 			]
 		},
 		{
-			"name": "[concat(parameters('factoryName'), '/Occupations')]",
-			"type": "Microsoft.DataFactory/factories/datasets",
+			"name": "[concat(parameters('factoryName'), '/generateChurn')]",
+			"type": "Microsoft.DataFactory/factories/dataflows",
 			"apiVersion": "2018-06-01",
 			"properties": {
-				"linkedServiceName": {
-					"referenceName": "wilding360datalake",
-					"type": "LinkedServiceReference"
-				},
-				"folder": {
-					"name": "Auxiliary Tables"
-				},
-				"annotations": [],
-				"type": "Parquet",
+				"type": "MappingDataFlow",
 				"typeProperties": {
-					"location": {
-						"type": "AzureBlobFSLocation",
-						"folderPath": "occupations",
-						"fileSystem": "auxiliary-tables"
-					},
-					"compressionCodec": "snappy"
-				},
-				"schema": []
+					"sources": [
+						{
+							"dataset": {
+								"referenceName": "Customers_clean",
+								"type": "DatasetReference"
+							},
+							"name": "Customers"
+						},
+						{
+							"dataset": {
+								"referenceName": "Addresses_clean",
+								"type": "DatasetReference"
+							},
+							"name": "Addresses"
+						},
+						{
+							"dataset": {
+								"referenceName": "cityStateCountry",
+								"type": "DatasetReference"
+							},
+							"name": "cityStateCountry"
+						},
+						{
+							"dataset": {
+								"referenceName": "Products_clean",
+								"type": "DatasetReference"
+							},
+							"name": "Products"
+						},
+						{
+							"dataset": {
+								"referenceName": "Srs_clean",
+								"type": "DatasetReference"
+							},
+							"name": "SRS"
+						},
+						{
+							"dataset": {
+								"referenceName": "Transactions_clean",
+								"type": "DatasetReference"
+							},
+							"name": "Transactions"
+						}
+					],
+					"sinks": [
+						{
+							"dataset": {
+								"referenceName": "Churn",
+								"type": "DatasetReference"
+							},
+							"name": "Churn"
+						}
+					],
+					"transformations": [
+						{
+							"name": "Join1"
+						},
+						{
+							"name": "customerIDCountry"
+						},
+						{
+							"name": "DerivedColumn1"
+						},
+						{
+							"name": "customers1"
+						},
+						{
+							"name": "customerCountries"
+						},
+						{
+							"name": "Exists1"
+						},
+						{
+							"name": "Join2"
+						},
+						{
+							"name": "ProductInfo"
+						},
+						{
+							"name": "RemoveColumns1",
+							"description": "Autogenerated by data preview actions"
+						},
+						{
+							"name": "avgFeedbackScore"
+						},
+						{
+							"name": "depositsWithdrawls"
+						},
+						{
+							"name": "Join3"
+						},
+						{
+							"name": "Join4"
+						}
+					],
+					"script": "source(output(\n\t\tcustomer_id as long,\n\t\tsource_id as string,\n\t\tfirst_name as string,\n\t\tmiddle_name as string,\n\t\tlast_name as string,\n\t\tdob as timestamp,\n\t\tgender as string,\n\t\tnationality as string,\n\t\tmarital_status as string,\n\t\toccupation as string,\n\t\tavg_family_size as integer,\n\t\tincome_level as string,\n\t\tdate_onboarded as timestamp,\n\t\tcreated_date as timestamp,\n\t\tupdated_date as timestamp,\n\t\teffective_start_date as timestamp,\n\t\teffective_end_date as timestamp,\n\t\tIdentifier_type as string,\n\t\tidentifier as string\n\t),\n\tallowSchemaDrift: false,\n\tvalidateSchema: false,\n\tignoreNoFilesFound: false,\n\tformat: 'parquet') ~> Customers\nsource(output(\n\t\taddress_id as long,\n\t\taddress_type as string,\n\t\taddress1 as string,\n\t\taddress2 as string,\n\t\taddress3 as string,\n\t\tcity as string,\n\t\tstate as string,\n\t\tcountry as string,\n\t\tzipcode as string,\n\t\tphone as string,\n\t\temail as string,\n\t\tFax as string,\n\t\tcustomer_id as long\n\t),\n\tallowSchemaDrift: false,\n\tvalidateSchema: false,\n\tignoreNoFilesFound: false,\n\tformat: 'parquet') ~> Addresses\nsource(output(\n\t\tCity as string,\n\t\tState as string,\n\t\tCountry as string\n\t),\n\tallowSchemaDrift: false,\n\tvalidateSchema: false,\n\tignoreNoFilesFound: false,\n\tformat: 'parquet') ~> cityStateCountry\nsource(output(\n\t\tproduct_id as long,\n\t\tproduct_name as string,\n\t\tproduct_type as string,\n\t\tproduct_description as string,\n\t\tissue_date as string,\n\t\tvalid_till_date as string,\n\t\taccount_status as string,\n\t\tcredit_card_limit as long,\n\t\tinterest_rate as double,\n\t\ttenure as long,\n\t\tservice_charges as long,\n\t\tcustomer_id as long,\n\t\tfd_principal_amount as long,\n\t\tloan_collateral_value as long,\n\t\tloan_amount as long\n\t),\n\tallowSchemaDrift: false,\n\tvalidateSchema: false,\n\tignoreNoFilesFound: false,\n\tformat: 'parquet') ~> Products\nsource(output(\n\t\tsr_id as long,\n\t\tcustomer_id as long,\n\t\tproduct_id as long,\n\t\tsr_description as string,\n\t\tsr_open_date as timestamp,\n\t\tsr_close_date as timestamp,\n\t\tsr_type as string,\n\t\tchannel as string,\n\t\tsr_cust_feedback as string,\n\t\tfeedback_type as string,\n\t\tfeedback_severity as string\n\t),\n\tallowSchemaDrift: false,\n\tvalidateSchema: false,\n\tignoreNoFilesFound: false,\n\tformat: 'parquet') ~> SRS\nsource(output(\n\t\ttransaction_id as long,\n\t\tcustomer_id as long,\n\t\tproduct_id as long,\n\t\tmerchant_name as string,\n\t\ttransaction_description as string,\n\t\ttransaction_amount as long,\n\t\ttype_deposit_withdrawal as string,\n\t\ttransaction_date as timestamp,\n\t\tchannel as string\n\t),\n\tallowSchemaDrift: false,\n\tvalidateSchema: false,\n\tignoreNoFilesFound: false,\n\tformat: 'parquet') ~> Transactions\ncustomers1, customerCountries join(customers1@customer_id == customerCountries@customer_id,\n\tjoinType:'inner',\n\tbroadcast: 'auto')~> Join1\nJoin1 select(mapColumn(\n\t\tcustomer_id = customers1@customer_id,\n\t\tcountry,\n\t\tage = dob,\n\t\tgender\n\t),\n\tskipDuplicateMapInputs: true,\n\tskipDuplicateMapOutputs: true) ~> customerIDCountry\nJoin2 derive(credit_score = toInteger(random(1)*215 + 600),\n\t\tage = toInteger(monthsBetween(currentTimestamp(), age) / 12),\n\t\thas_credit_card = iif(has_credit_card > 0, true(), false())) ~> DerivedColumn1\nCustomers aggregate(groupBy(customer_id,\n\t\tdob,\n\t\tgender),\n\tcount = count()) ~> customers1\nExists1 aggregate(groupBy(customer_id,\n\t\tcountry),\n\tcount = count()) ~> customerCountries\nAddresses, cityStateCountry exists(Addresses@country == cityStateCountry@Country,\n\tnegate:false,\n\tbroadcast: 'auto')~> Exists1\ncustomerIDCountry, ProductInfo join(customerIDCountry@customer_id == ProductInfo@customer_id,\n\tjoinType:'inner',\n\tbroadcast: 'auto')~> Join2\nProducts aggregate(groupBy(customer_id),\n\ttenure = sum(tenure),\n\t\tnumber_of_products = count(),\n\t\thas_credit_card = countIf(product_type == \"CREDIT CARD\" && account_status == \"open\", customer_id),\n\t\tis_active = iif(countIf(account_status == \"closed\") == count(), false(), true()),\n\t\texited = !iif(countIf(account_status == \"closed\") == count(), false(), true())) ~> ProductInfo\nJoin4 select(mapColumn(\n\t\tcustomer_id = customerIDCountry@customer_id,\n\t\tcredit_score,\n\t\tcountry,\n\t\tgender,\n\t\tage,\n\t\ttenure,\n\t\tdeposits,\n\t\twithdrawls,\n\t\tnumber_of_products,\n\t\thas_credit_card,\n\t\tavg_feedback_score,\n\t\tis_active,\n\t\texited\n\t),\n\tskipDuplicateMapInputs: true,\n\tskipDuplicateMapOutputs: true) ~> RemoveColumns1\nSRS aggregate(groupBy(customer_id),\n\tavg_feedback_score = countIf(feedback_type == \"Positive\") / iif(countIf(feedback_type == \"Negative\") == 0, 1l, countIf(feedback_type == \"Negative\")),\n\t\tpositive = countIf(feedback_type == \"Positive\"),\n\t\tnegative = countIf(feedback_type == \"Negative\")) ~> avgFeedbackScore\nTransactions aggregate(groupBy(customer_id),\n\tdeposits = iifNull(sumIf(type_deposit_withdrawal == \"D\", transaction_amount), 0),\n\t\twithdrawls = iifNull(sumIf(type_deposit_withdrawal == \"W\", transaction_amount), 0)) ~> depositsWithdrawls\navgFeedbackScore, depositsWithdrawls join(avgFeedbackScore@customer_id == depositsWithdrawls@customer_id,\n\tjoinType:'inner',\n\tbroadcast: 'auto')~> Join3\nDerivedColumn1, Join3 join(customerIDCountry@customer_id == avgFeedbackScore@customer_id,\n\tjoinType:'inner',\n\tbroadcast: 'auto')~> Join4\nRemoveColumns1 sink(allowSchemaDrift: true,\n\tvalidateSchema: false,\n\tinput(\n\t\tcustomer_id as long,\n\t\tcredit_score as integer,\n\t\tcountry as string,\n\t\tgender as string,\n\t\tage as integer,\n\t\ttenure as long,\n\t\tdeposits as long,\n\t\twithdrawls as long,\n\t\tnumber_of_products as long,\n\t\thas_credit_card as boolean,\n\t\tavg_feedback_score as double,\n\t\tis_active as boolean,\n\t\texited as boolean\n\t),\n\tformat: 'parquet',\n\ttruncate: true,\n\tumask: 0022,\n\tpreCommands: [],\n\tpostCommands: [],\n\tskipDuplicateMapInputs: true,\n\tskipDuplicateMapOutputs: true,\n\tsaveOrder: 1) ~> Churn"
+				}
 			},
 			"dependsOn": [
-				"[concat(variables('factoryId'), '/linkedServices/wilding360datalake')]"
+				"[concat(variables('factoryId'), '/datasets/Customers_clean')]",
+				"[concat(variables('factoryId'), '/datasets/Addresses_clean')]",
+				"[concat(variables('factoryId'), '/datasets/cityStateCountry')]",
+				"[concat(variables('factoryId'), '/datasets/Products_clean')]",
+				"[concat(variables('factoryId'), '/datasets/Srs_clean')]",
+				"[concat(variables('factoryId'), '/datasets/Transactions_clean')]",
+				"[concat(variables('factoryId'), '/datasets/Churn')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/productsAuxLists')]",
+			"type": "Microsoft.DataFactory/factories/dataflows",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"folder": {
+					"name": "Setup Auxiliary Datasets"
+				},
+				"type": "MappingDataFlow",
+				"typeProperties": {
+					"sources": [
+						{
+							"dataset": {
+								"referenceName": "Products",
+								"type": "DatasetReference"
+							},
+							"name": "Products"
+						}
+					],
+					"sinks": [
+						{
+							"dataset": {
+								"referenceName": "productNameTypeDesc",
+								"type": "DatasetReference"
+							},
+							"name": "ProductNameTypeDesc"
+						},
+						{
+							"dataset": {
+								"referenceName": "productIDs",
+								"type": "DatasetReference"
+							},
+							"name": "productIDs"
+						},
+						{
+							"dataset": {
+								"referenceName": "ProductIDsCSVTest",
+								"type": "DatasetReference"
+							},
+							"name": "sink1"
+						}
+					],
+					"transformations": [
+						{
+							"name": "SelectProductNames"
+						},
+						{
+							"name": "SelectProductIDs"
+						},
+						{
+							"name": "Aggregate1"
+						},
+						{
+							"name": "Aggregate2"
+						}
+					],
+					"script": "source(output(\n\t\tproduct_id as long,\n\t\tproduct_name as string,\n\t\tproduct_type as string,\n\t\tproduct_description as string,\n\t\tissue_date as timestamp,\n\t\tvalid_till_date as timestamp,\n\t\taccount_status as string,\n\t\tcredit_card_limit as long,\n\t\tinterest_rate as double,\n\t\ttenure as long,\n\t\tservice_charges as long,\n\t\tcustomer_id as long,\n\t\tfd_principal_amount as long,\n\t\tloan_collateral_value as long,\n\t\tloan_amount as long\n\t),\n\tallowSchemaDrift: true,\n\tvalidateSchema: false,\n\tignoreNoFilesFound: false,\n\tformat: 'parquet') ~> Products\nProducts select(mapColumn(\n\t\tproduct_name,\n\t\tproduct_type,\n\t\tproduct_description\n\t),\n\tskipDuplicateMapInputs: true,\n\tskipDuplicateMapOutputs: true) ~> SelectProductNames\nProducts select(mapColumn(\n\t\tproduct_id\n\t),\n\tskipDuplicateMapInputs: true,\n\tskipDuplicateMapOutputs: true) ~> SelectProductIDs\nSelectProductNames aggregate(groupBy(product_name,\n\t\tproduct_type,\n\t\tproduct_description),\n\tcount = count(product_name)) ~> Aggregate1\nSelectProductIDs aggregate(groupBy(product_id),\n\tcount = count(product_id)) ~> Aggregate2\nAggregate1 sink(allowSchemaDrift: true,\n\tvalidateSchema: false,\n\tinput(\n\t\tproduct_name as string,\n\t\tproduct_type as string,\n\t\tproduct_description as string,\n\t\tcount as long\n\t),\n\tformat: 'parquet',\n\ttruncate: true,\n\tumask: 0022,\n\tpreCommands: [],\n\tpostCommands: [],\n\tskipDuplicateMapInputs: true,\n\tskipDuplicateMapOutputs: true) ~> ProductNameTypeDesc\nAggregate2 sink(allowSchemaDrift: true,\n\tvalidateSchema: true,\n\tinput(\n\t\tproduct_id as long\n\t),\n\tformat: 'parquet',\n\ttruncate: true,\n\tumask: 0022,\n\tpreCommands: [],\n\tpostCommands: [],\n\tskipDuplicateMapInputs: true,\n\tskipDuplicateMapOutputs: true) ~> productIDs\nAggregate2 sink(allowSchemaDrift: true,\n\tvalidateSchema: false,\n\tpartitionFileNames:['productsIDsCSVTest'],\n\tumask: 0022,\n\tpreCommands: [],\n\tpostCommands: [],\n\tskipDuplicateMapInputs: true,\n\tskipDuplicateMapOutputs: true,\n\tpartitionBy('hash', 1)) ~> sink1"
+				}
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/datasets/Products')]",
+				"[concat(variables('factoryId'), '/datasets/productNameTypeDesc')]",
+				"[concat(variables('factoryId'), '/datasets/productIDs')]",
+				"[concat(variables('factoryId'), '/datasets/ProductIDsCSVTest')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/productsETL')]",
+			"type": "Microsoft.DataFactory/factories/dataflows",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"type": "MappingDataFlow",
+				"typeProperties": {
+					"sources": [
+						{
+							"dataset": {
+								"referenceName": "customerIDs",
+								"type": "DatasetReference"
+							},
+							"name": "Customers"
+						},
+						{
+							"dataset": {
+								"referenceName": "Products",
+								"type": "DatasetReference"
+							},
+							"name": "Products"
+						},
+						{
+							"dataset": {
+								"referenceName": "productNameTypeDesc",
+								"type": "DatasetReference"
+							},
+							"name": "ProductNameTypeDescList"
+						}
+					],
+					"sinks": [
+						{
+							"dataset": {
+								"referenceName": "Products_clean",
+								"type": "DatasetReference"
+							},
+							"name": "ProductsClean"
+						},
+						{
+							"dataset": {
+								"referenceName": "Products_errors",
+								"type": "DatasetReference"
+							},
+							"name": "productsErrors"
+						}
+					],
+					"transformations": [
+						{
+							"name": "Assert1"
+						},
+						{
+							"name": "DerivedColumn1"
+						},
+						{
+							"name": "Filter1"
+						},
+						{
+							"name": "CustomerIDExists"
+						},
+						{
+							"name": "Union1"
+						},
+						{
+							"name": "NameTypeDescExists"
+						},
+						{
+							"name": "Products1"
+						}
+					],
+					"script": "source(output(\n\t\tcustomer_id as long\n\t),\n\tallowSchemaDrift: true,\n\tvalidateSchema: false,\n\tignoreNoFilesFound: false,\n\tformat: 'parquet',\n\tdateFormats: ['MM/dd/yyyy'],\n\ttimestampFormats: ['MM/dd/yyyy HH:mm:ss']) ~> Customers\nsource(output(\n\t\tproduct_id as long,\n\t\tproduct_name as string,\n\t\tproduct_type as string,\n\t\tproduct_description as string,\n\t\tissue_date as timestamp,\n\t\tvalid_till_date as timestamp,\n\t\taccount_status as string,\n\t\tcredit_card_limit as long,\n\t\tinterest_rate as double,\n\t\ttenure as long,\n\t\tservice_charges as long,\n\t\tcustomer_id as long,\n\t\tfd_principal_amount as long,\n\t\tloan_collateral_value as long,\n\t\tloan_amount as long\n\t),\n\tallowSchemaDrift: true,\n\tvalidateSchema: false,\n\tignoreNoFilesFound: false,\n\tformat: 'parquet',\n\tdateFormats: ['yyyy/MM/dd']) ~> Products\nsource(output(\n\t\tproduct_name as string,\n\t\tproduct_type as string,\n\t\tproduct_description as string,\n\t\tcount as long\n\t),\n\tallowSchemaDrift: true,\n\tvalidateSchema: false,\n\tignoreNoFilesFound: false,\n\tformat: 'parquet') ~> ProductNameTypeDescList\nProducts1 assert(expectTrue(valid_till_date >= issue_date, false, 'validAfterIssueDate'),\n\texpectTrue(lower(account_status) == \"open\" || lower(account_status) == \"closed\", false, 'accountStatusOpenClosed'),\n\texpectTrue(!isNull(product_id) && isInteger(toString(product_id)), false, 'productIDNotNull')) ~> Assert1\nAssert1 derive(product_name = initCap(product_name),\n\t\tproduct_type = upper(product_type),\n\t\tproduct_description = upper(product_description),\n\t\tissue_date = toString(toDate(issue_date), \"MMM-dd-yyyy\"),\n\t\tvalid_till_date = toString(toDate(valid_till_date), \"MMM-dd-yyyy\")) ~> DerivedColumn1\nDerivedColumn1 filter(isError()) ~> Filter1\nDerivedColumn1, Customers exists(Products@customer_id == Customers@customer_id,\n\tnegate:true,\n\tbroadcast: 'auto')~> CustomerIDExists\nFilter1, CustomerIDExists, NameTypeDescExists union(byName: true)~> Union1\nDerivedColumn1, ProductNameTypeDescList exists(DerivedColumn1@product_name == ProductNameTypeDescList@product_name\n\t&& DerivedColumn1@product_type == ProductNameTypeDescList@product_type\n\t&& DerivedColumn1@product_description == ProductNameTypeDescList@product_description,\n\tnegate:true,\n\tbroadcast: 'auto')~> NameTypeDescExists\nProducts derive(valid_till_date = iif(isNull(tenure), addMonths(issue_date, 36), addMonths(issue_date, tenure))) ~> Products1\nDerivedColumn1 sink(allowSchemaDrift: true,\n\tvalidateSchema: false,\n\tformat: 'parquet',\n\ttruncate: true,\n\tumask: 0022,\n\tpreCommands: [],\n\tpostCommands: [],\n\tskipDuplicateMapInputs: true,\n\tskipDuplicateMapOutputs: true) ~> ProductsClean\nUnion1 sink(allowSchemaDrift: true,\n\tvalidateSchema: true,\n\tformat: 'parquet',\n\ttruncate: true,\n\tumask: 0022,\n\tpreCommands: [],\n\tpostCommands: [],\n\tskipDuplicateMapInputs: true,\n\tskipDuplicateMapOutputs: true) ~> productsErrors"
+				}
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/datasets/customerIDs')]",
+				"[concat(variables('factoryId'), '/datasets/Products')]",
+				"[concat(variables('factoryId'), '/datasets/productNameTypeDesc')]",
+				"[concat(variables('factoryId'), '/datasets/Products_clean')]",
+				"[concat(variables('factoryId'), '/datasets/Products_errors')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/srsAuxLists')]",
+			"type": "Microsoft.DataFactory/factories/dataflows",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"folder": {
+					"name": "Setup Auxiliary Datasets"
+				},
+				"type": "MappingDataFlow",
+				"typeProperties": {
+					"sources": [
+						{
+							"dataset": {
+								"referenceName": "SRS",
+								"type": "DatasetReference"
+							},
+							"name": "srs"
+						}
+					],
+					"sinks": [
+						{
+							"dataset": {
+								"referenceName": "channels",
+								"type": "DatasetReference"
+							},
+							"name": "channels"
+						},
+						{
+							"dataset": {
+								"referenceName": "srTypes",
+								"type": "DatasetReference"
+							},
+							"name": "srTypes"
+						}
+					],
+					"transformations": [
+						{
+							"name": "Select1"
+						},
+						{
+							"name": "Select2"
+						},
+						{
+							"name": "Aggregate1"
+						},
+						{
+							"name": "Aggregate2"
+						}
+					],
+					"script": "source(output(\n\t\tsr_id as long,\n\t\tcustomer_id as long,\n\t\tproduct_id as long,\n\t\tsr_description as string,\n\t\tsr_open_date as timestamp,\n\t\tsr_close_date as timestamp,\n\t\tsr_type as string,\n\t\tchannel as string,\n\t\tsr_cust_feedback as string\n\t),\n\tallowSchemaDrift: true,\n\tvalidateSchema: false,\n\tignoreNoFilesFound: false,\n\tformat: 'parquet') ~> srs\nsrs select(mapColumn(\n\t\tsr_type\n\t),\n\tskipDuplicateMapInputs: true,\n\tskipDuplicateMapOutputs: true) ~> Select1\nsrs select(mapColumn(\n\t\tchannel\n\t),\n\tskipDuplicateMapInputs: true,\n\tskipDuplicateMapOutputs: true) ~> Select2\nSelect2 aggregate(groupBy(channel),\n\tcount = count(channel)) ~> Aggregate1\nSelect1 aggregate(groupBy(sr_type),\n\tcount = count(sr_type)) ~> Aggregate2\nAggregate1 sink(allowSchemaDrift: true,\n\tvalidateSchema: false,\n\tinput(\n\t\tchannel as string,\n\t\tcount as long\n\t),\n\tformat: 'parquet',\n\tumask: 0022,\n\tpreCommands: [],\n\tpostCommands: [],\n\tskipDuplicateMapInputs: true,\n\tskipDuplicateMapOutputs: true) ~> channels\nAggregate2 sink(allowSchemaDrift: true,\n\tvalidateSchema: true,\n\tinput(\n\t\tsr_type as string,\n\t\tcount as long\n\t),\n\tformat: 'parquet',\n\tumask: 0022,\n\tpreCommands: [],\n\tpostCommands: [],\n\tskipDuplicateMapInputs: true,\n\tskipDuplicateMapOutputs: true) ~> srTypes"
+				}
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/datasets/SRS')]",
+				"[concat(variables('factoryId'), '/datasets/channels')]",
+				"[concat(variables('factoryId'), '/datasets/srTypes')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/srsETL')]",
+			"type": "Microsoft.DataFactory/factories/dataflows",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"type": "MappingDataFlow",
+				"typeProperties": {
+					"sources": [
+						{
+							"dataset": {
+								"referenceName": "customerIDs",
+								"type": "DatasetReference"
+							},
+							"name": "Customers"
+						},
+						{
+							"dataset": {
+								"referenceName": "SRS",
+								"type": "DatasetReference"
+							},
+							"name": "SRS"
+						},
+						{
+							"dataset": {
+								"referenceName": "srTypes",
+								"type": "DatasetReference"
+							},
+							"name": "srTypes"
+						},
+						{
+							"dataset": {
+								"referenceName": "productIDs",
+								"type": "DatasetReference"
+							},
+							"name": "productIDs"
+						},
+						{
+							"dataset": {
+								"referenceName": "channels",
+								"type": "DatasetReference"
+							},
+							"name": "channels"
+						}
+					],
+					"sinks": [
+						{
+							"dataset": {
+								"referenceName": "Srs_clean",
+								"type": "DatasetReference"
+							},
+							"name": "SrsClean"
+						},
+						{
+							"dataset": {
+								"referenceName": "Srs_errors",
+								"type": "DatasetReference"
+							},
+							"name": "srsErrors"
+						}
+					],
+					"transformations": [
+						{
+							"name": "Asserts"
+						},
+						{
+							"name": "Filter1"
+						},
+						{
+							"name": "Union"
+						},
+						{
+							"name": "custIDExists"
+						},
+						{
+							"name": "prodIDExists"
+						},
+						{
+							"name": "srTypeExists"
+						},
+						{
+							"name": "channelExists"
+						},
+						{
+							"name": "DerivedColumn1"
+						}
+					],
+					"script": "source(output(\n\t\tcustomer_id as long\n\t),\n\tallowSchemaDrift: true,\n\tvalidateSchema: false,\n\tignoreNoFilesFound: false,\n\tformat: 'parquet',\n\tdateFormats: ['MM/dd/yyyy'],\n\ttimestampFormats: ['MM/dd/yyyy HH:mm:ss']) ~> Customers\nsource(output(\n\t\tsr_id as long,\n\t\tcustomer_id as long,\n\t\tproduct_id as long,\n\t\tsr_description as string,\n\t\tsr_open_date as timestamp,\n\t\tsr_close_date as timestamp,\n\t\tsr_type as string,\n\t\tchannel as string,\n\t\tsr_cust_feedback as string\n\t),\n\tallowSchemaDrift: false,\n\tvalidateSchema: false,\n\tignoreNoFilesFound: false,\n\tformat: 'parquet',\n\tdateFormats: ['yyyy/MM/dd']) ~> SRS\nsource(output(\n\t\tsr_type as string,\n\t\tcount as long\n\t),\n\tallowSchemaDrift: true,\n\tvalidateSchema: false,\n\tignoreNoFilesFound: false,\n\tformat: 'parquet') ~> srTypes\nsource(output(\n\t\tproduct_id as long,\n\t\tcount as long\n\t),\n\tallowSchemaDrift: false,\n\tvalidateSchema: true,\n\tignoreNoFilesFound: false,\n\tformat: 'parquet') ~> productIDs\nsource(output(\n\t\tchannel as string,\n\t\tcount as long\n\t),\n\tallowSchemaDrift: true,\n\tvalidateSchema: false,\n\tignoreNoFilesFound: false,\n\tformat: 'parquet') ~> channels\nDerivedColumn1 assert(expectTrue(!isNull(sr_id), false, 'srIDNotNull'),\n\texpectTrue(length(sr_description) > 0 && length(sr_description) <= 100, false, 'descriptionLength'),\n\texpectTrue(sr_close_date >= sr_open_date, false, 'validCloseDate'),\n\texpectTrue(length(sr_cust_feedback) > 0 && length(sr_cust_feedback) <= 100, false, 'custFeedbackLength')) ~> Asserts\nAsserts filter(isError()) ~> Filter1\nFilter1, custIDExists, prodIDExists, srTypeExists, channelExists union(byName: true)~> Union\nAsserts, Customers exists(SRS@customer_id == Customers@customer_id,\n\tnegate:true,\n\tbroadcast: 'auto')~> custIDExists\nAsserts, productIDs exists(SRS@product_id == productIDs@product_id,\n\tnegate:true,\n\tbroadcast: 'auto')~> prodIDExists\nAsserts, srTypes exists(SRS@sr_type == srTypes@sr_type,\n\tnegate:true,\n\tbroadcast: 'auto')~> srTypeExists\nAsserts, channels exists(SRS@channel == channels@channel,\n\tnegate:true,\n\tbroadcast: 'auto')~> channelExists\nSRS derive(feedback_type = iif(\r\n    reduce(split(sr_cust_feedback, \" \"), false(), #acc || in([\"fantastic\", \"great\", \"satisfied\", \"satisfactory\", \"satisfaction\", \"happy\", \"serve\", \"served\", \"serving\", \"timely\", \"prompt\"], lower(#item)), #result),\r\n    \"Positive\",\r\n    \"Negative\"\r\n    ),\n\t\tfeedback_severity = case(    \r\n    reduce(\r\n        split(sr_cust_feedback, \" \"), \r\n        false(), \r\n        #acc || in([\"should\", \"interest\", \"quicker\", \"quick\", \"switch\", \"switching\", \"bank\", \"need\", \"needs\", \"horrible\", \"terrible\", \"bad\", \"unhappy\", \"about\" ,\"very\"], lower(#item)), \r\n        #result\r\n        ),    \r\n    \"High\",    \r\n    case(\r\n        reduce(\r\n            split(sr_cust_feedback, \" \"), \r\n            false(), \r\n            #acc || in([\"timely\", \"higher\", \"high\", \"prompt\", \"committed\", \"improve\", \"improved\"], lower(#item)), \r\n            #result\r\n            ),    \r\n    \"Medium\",\r\n    \"Low\"\r\n    )   \r\n)) ~> DerivedColumn1\nAsserts sink(allowSchemaDrift: true,\n\tvalidateSchema: true,\n\tinput(\n\t\tsr_id as long,\n\t\tcustomer_id as long,\n\t\tproduct_id as long,\n\t\tsr_description as string,\n\t\tsr_open_date as timestamp,\n\t\tsr_close_date as timestamp,\n\t\tsr_type as string,\n\t\tchannel as string,\n\t\tsr_cust_feedback as string,\n\t\tfeedback_type as string,\n\t\tfeedback_severity as string\n\t),\n\tformat: 'parquet',\n\ttruncate: true,\n\tumask: 0022,\n\tpreCommands: [],\n\tpostCommands: [],\n\tskipDuplicateMapInputs: true,\n\tskipDuplicateMapOutputs: true) ~> SrsClean\nUnion sink(allowSchemaDrift: true,\n\tvalidateSchema: true,\n\tformat: 'parquet',\n\ttruncate: true,\n\tumask: 0022,\n\tpreCommands: [],\n\tpostCommands: [],\n\tskipDuplicateMapInputs: true,\n\tskipDuplicateMapOutputs: true) ~> srsErrors"
+				}
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/datasets/customerIDs')]",
+				"[concat(variables('factoryId'), '/datasets/SRS')]",
+				"[concat(variables('factoryId'), '/datasets/srTypes')]",
+				"[concat(variables('factoryId'), '/datasets/productIDs')]",
+				"[concat(variables('factoryId'), '/datasets/channels')]",
+				"[concat(variables('factoryId'), '/datasets/Srs_clean')]",
+				"[concat(variables('factoryId'), '/datasets/Srs_errors')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/transactionsAuxList')]",
+			"type": "Microsoft.DataFactory/factories/dataflows",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"folder": {
+					"name": "Setup Auxiliary Datasets"
+				},
+				"type": "MappingDataFlow",
+				"typeProperties": {
+					"sources": [
+						{
+							"dataset": {
+								"referenceName": "Transactions",
+								"type": "DatasetReference"
+							},
+							"name": "source1"
+						}
+					],
+					"sinks": [
+						{
+							"dataset": {
+								"referenceName": "merchantNames",
+								"type": "DatasetReference"
+							},
+							"name": "sink1"
+						}
+					],
+					"transformations": [
+						{
+							"name": "Select1"
+						},
+						{
+							"name": "Aggregate1"
+						}
+					],
+					"script": "source(output(\n\t\ttransaction_id as long,\n\t\tcustomer_id as long,\n\t\tproduct_id as long,\n\t\tmerchant_name as string,\n\t\ttransaction_description as string,\n\t\ttransaction_amount as long,\n\t\ttype_deposit_withdrawal as string,\n\t\ttransaction_date as timestamp,\n\t\tchannel as string\n\t),\n\tallowSchemaDrift: true,\n\tvalidateSchema: false,\n\tignoreNoFilesFound: false,\n\tformat: 'parquet') ~> source1\nsource1 select(mapColumn(\n\t\tmerchant_name\n\t),\n\tskipDuplicateMapInputs: true,\n\tskipDuplicateMapOutputs: true) ~> Select1\nSelect1 aggregate(groupBy(merchant_name),\n\tcount = count(merchant_name)) ~> Aggregate1\nAggregate1 sink(allowSchemaDrift: true,\n\tvalidateSchema: true,\n\tinput(\n\t\tmerchant_name as string,\n\t\tcount as long\n\t),\n\tformat: 'parquet',\n\tumask: 0022,\n\tpreCommands: [],\n\tpostCommands: [],\n\tskipDuplicateMapInputs: true,\n\tskipDuplicateMapOutputs: true) ~> sink1"
+				}
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/datasets/Transactions')]",
+				"[concat(variables('factoryId'), '/datasets/merchantNames')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/transactionsETL')]",
+			"type": "Microsoft.DataFactory/factories/dataflows",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"type": "MappingDataFlow",
+				"typeProperties": {
+					"sources": [
+						{
+							"dataset": {
+								"referenceName": "customerIDs",
+								"type": "DatasetReference"
+							},
+							"name": "Customers"
+						},
+						{
+							"dataset": {
+								"referenceName": "Transactions",
+								"type": "DatasetReference"
+							},
+							"name": "Transactions"
+						},
+						{
+							"dataset": {
+								"referenceName": "productIDs",
+								"type": "DatasetReference"
+							},
+							"name": "productIDs"
+						},
+						{
+							"dataset": {
+								"referenceName": "merchantNames",
+								"type": "DatasetReference"
+							},
+							"name": "merchants"
+						},
+						{
+							"dataset": {
+								"referenceName": "channels",
+								"type": "DatasetReference"
+							},
+							"name": "channels"
+						}
+					],
+					"sinks": [
+						{
+							"dataset": {
+								"referenceName": "Transactions_clean",
+								"type": "DatasetReference"
+							},
+							"name": "TransactionsClean"
+						},
+						{
+							"dataset": {
+								"referenceName": "Transactions_errors",
+								"type": "DatasetReference"
+							},
+							"name": "transactionsErrors"
+						}
+					],
+					"transformations": [
+						{
+							"name": "Assert1"
+						},
+						{
+							"name": "Filter1"
+						},
+						{
+							"name": "customerIDExists"
+						},
+						{
+							"name": "productIDExists"
+						},
+						{
+							"name": "merchantExists"
+						},
+						{
+							"name": "channelExists"
+						},
+						{
+							"name": "Union1"
+						}
+					],
+					"script": "source(output(\n\t\tcustomer_id as long\n\t),\n\tallowSchemaDrift: true,\n\tvalidateSchema: false,\n\tignoreNoFilesFound: false,\n\tformat: 'parquet',\n\tdateFormats: ['MM/dd/yyyy'],\n\ttimestampFormats: ['MM/dd/yyyy HH:mm:ss']) ~> Customers\nsource(output(\n\t\ttransaction_id as long,\n\t\tcustomer_id as long,\n\t\tproduct_id as long,\n\t\tmerchant_name as string,\n\t\ttransaction_description as string,\n\t\ttransaction_amount as long,\n\t\ttype_deposit_withdrawal as string,\n\t\ttransaction_date as timestamp,\n\t\tchannel as string\n\t),\n\tallowSchemaDrift: false,\n\tvalidateSchema: false,\n\tignoreNoFilesFound: false,\n\tformat: 'parquet',\n\tdateFormats: ['yyyy/MM/dd']) ~> Transactions\nsource(output(\n\t\tproduct_id as long\n\t),\n\tallowSchemaDrift: false,\n\tvalidateSchema: false,\n\tignoreNoFilesFound: false,\n\tformat: 'parquet') ~> productIDs\nsource(output(\n\t\tmerchant_name as string,\n\t\tcount as long\n\t),\n\tallowSchemaDrift: false,\n\tvalidateSchema: false,\n\tignoreNoFilesFound: false,\n\tformat: 'parquet') ~> merchants\nsource(output(\n\t\tchannel as string,\n\t\tcount as long\n\t),\n\tallowSchemaDrift: false,\n\tvalidateSchema: false,\n\tignoreNoFilesFound: false,\n\tformat: 'parquet') ~> channels\nTransactions assert(expectTrue(!isNull(transaction_id) && isInteger(toString(transaction_id)), false, 'srIDNotNull'),\n\texpectTrue(!isNull(transaction_amount) && isInteger(toString(transaction_amount)), false, 'transactionAmt'),\n\texpectTrue(type_deposit_withdrawal == \"D\" || type_deposit_withdrawal == \"W\", false, 'validType')) ~> Assert1\nAssert1 filter(isError()) ~> Filter1\nAssert1, Customers exists(Transactions@customer_id == Customers@customer_id,\n\tnegate:true,\n\tbroadcast: 'auto')~> customerIDExists\nAssert1, productIDs exists(Transactions@product_id == productIDs@product_id,\n\tnegate:true,\n\tbroadcast: 'auto')~> productIDExists\nAssert1, merchants exists(Transactions@merchant_name == merchants@merchant_name,\n\tnegate:true,\n\tbroadcast: 'auto')~> merchantExists\nAssert1, channels exists(Transactions@channel == channels@channel,\n\tnegate:true,\n\tbroadcast: 'auto')~> channelExists\nFilter1, productIDExists, channelExists, customerIDExists, merchantExists union(byName: true)~> Union1\nAssert1 sink(allowSchemaDrift: true,\n\tvalidateSchema: true,\n\tformat: 'parquet',\n\ttruncate: true,\n\tumask: 0022,\n\tpreCommands: [],\n\tpostCommands: [],\n\tskipDuplicateMapInputs: true,\n\tskipDuplicateMapOutputs: true) ~> TransactionsClean\nUnion1 sink(allowSchemaDrift: true,\n\tvalidateSchema: true,\n\tformat: 'parquet',\n\ttruncate: true,\n\tumask: 0022,\n\tpreCommands: [],\n\tpostCommands: [],\n\tskipDuplicateMapInputs: true,\n\tskipDuplicateMapOutputs: true) ~> transactionsErrors"
+				}
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/datasets/customerIDs')]",
+				"[concat(variables('factoryId'), '/datasets/Transactions')]",
+				"[concat(variables('factoryId'), '/datasets/productIDs')]",
+				"[concat(variables('factoryId'), '/datasets/merchantNames')]",
+				"[concat(variables('factoryId'), '/datasets/channels')]",
+				"[concat(variables('factoryId'), '/datasets/Transactions_clean')]",
+				"[concat(variables('factoryId'), '/datasets/Transactions_errors')]"
 			]
 		}
 	]

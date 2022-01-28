@@ -7,6 +7,10 @@
 			"metadata": "Data Factory name",
 			"defaultValue": "wilding360DF"
 		},
+		"AzureDatabricks1_accessToken": {
+			"type": "secureString",
+			"metadata": "Secure string for 'accessToken' of 'AzureDatabricks1'"
+		},
 		"wilding360PoC_accessToken": {
 			"type": "secureString",
 			"metadata": "Secure string for 'accessToken' of 'wilding360PoC'"
@@ -24,6 +28,24 @@
 		"factoryId": "[concat('Microsoft.DataFactory/factories/', parameters('factoryName'))]"
 	},
 	"resources": [
+		{
+			"name": "[concat(parameters('factoryName'), '/AzureDatabricks1')]",
+			"type": "Microsoft.DataFactory/factories/linkedServices",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"annotations": [],
+				"type": "AzureDatabricks",
+				"typeProperties": {
+					"domain": "https://adb-8335868949914870.10.azuredatabricks.net",
+					"accessToken": {
+						"type": "SecureString",
+						"value": "[parameters('AzureDatabricks1_accessToken')]"
+					},
+					"existingClusterId": "1120-015936-tp7ks379"
+				}
+			},
+			"dependsOn": []
+		},
 		{
 			"name": "[concat(parameters('factoryName'), '/wilding360PoC')]",
 			"type": "Microsoft.DataFactory/factories/linkedServices",
@@ -92,72 +114,16 @@
 					"name": "Raw"
 				},
 				"annotations": [],
-				"type": "DelimitedText",
+				"type": "Parquet",
 				"typeProperties": {
 					"location": {
 						"type": "AzureBlobFSLocation",
-						"fileName": "address.csv",
+						"folderPath": "Parquet/addresses",
 						"fileSystem": "raw"
 					},
-					"columnDelimiter": ",",
-					"escapeChar": "\\",
-					"firstRowAsHeader": true,
-					"quoteChar": "\""
+					"compressionCodec": "snappy"
 				},
-				"schema": [
-					{
-						"name": "address_id",
-						"type": "String"
-					},
-					{
-						"name": "address_type",
-						"type": "String"
-					},
-					{
-						"name": "address1",
-						"type": "String"
-					},
-					{
-						"name": "address2",
-						"type": "String"
-					},
-					{
-						"name": "address3",
-						"type": "String"
-					},
-					{
-						"name": "city",
-						"type": "String"
-					},
-					{
-						"name": "state",
-						"type": "String"
-					},
-					{
-						"name": "country",
-						"type": "String"
-					},
-					{
-						"name": "zipcode",
-						"type": "String"
-					},
-					{
-						"name": "phone",
-						"type": "String"
-					},
-					{
-						"name": "email",
-						"type": "String"
-					},
-					{
-						"name": "Fax",
-						"type": "String"
-					},
-					{
-						"name": "customer_id",
-						"type": "String"
-					}
-				]
+				"schema": []
 			},
 			"dependsOn": [
 				"[concat(variables('factoryId'), '/linkedServices/wilding360datalake')]"
@@ -176,39 +142,23 @@
 					"name": "Clean"
 				},
 				"annotations": [],
-				"type": "DelimitedText",
+				"type": "Parquet",
 				"typeProperties": {
 					"location": {
 						"type": "AzureBlobFSLocation",
 						"folderPath": "addresses",
 						"fileSystem": "clean"
 					},
-					"columnDelimiter": ",",
-					"escapeChar": "\\",
-					"firstRowAsHeader": true,
-					"quoteChar": "\""
+					"compressionCodec": "snappy"
 				},
-				"schema": [
-					{
-						"name": "city",
-						"type": "String"
-					},
-					{
-						"name": "state",
-						"type": "String"
-					},
-					{
-						"name": "country",
-						"type": "String"
-					}
-				]
+				"schema": []
 			},
 			"dependsOn": [
 				"[concat(variables('factoryId'), '/linkedServices/wilding360datalake')]"
 			]
 		},
 		{
-			"name": "[concat(parameters('factoryName'), '/CityStateCountry')]",
+			"name": "[concat(parameters('factoryName'), '/Addresses_errors')]",
 			"type": "Microsoft.DataFactory/factories/datasets",
 			"apiVersion": "2018-06-01",
 			"properties": {
@@ -217,33 +167,95 @@
 					"type": "LinkedServiceReference"
 				},
 				"folder": {
-					"name": "Auxiliary Tables"
+					"name": "Errors"
 				},
 				"annotations": [],
-				"type": "DelimitedText",
+				"type": "Parquet",
 				"typeProperties": {
 					"location": {
 						"type": "AzureBlobFSLocation",
-						"fileName": "CityStateCountry.csv",
-						"fileSystem": "raw"
+						"folderPath": "addresses",
+						"fileSystem": "errors"
 					},
-					"columnDelimiter": ",",
-					"escapeChar": "\\",
-					"firstRowAsHeader": true,
-					"quoteChar": "\""
+					"compressionCodec": "snappy"
+				},
+				"schema": []
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/linkedServices/wilding360datalake')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/Churn')]",
+			"type": "Microsoft.DataFactory/factories/datasets",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"linkedServiceName": {
+					"referenceName": "wilding360datalake",
+					"type": "LinkedServiceReference"
+				},
+				"annotations": [],
+				"type": "Parquet",
+				"typeProperties": {
+					"location": {
+						"type": "AzureBlobFSLocation",
+						"folderPath": "churn",
+						"fileSystem": "clean"
+					},
+					"compressionCodec": "snappy"
 				},
 				"schema": [
 					{
-						"name": "city",
-						"type": "String"
+						"name": "customer_id",
+						"type": "INT64"
 					},
 					{
-						"name": "state",
-						"type": "String"
+						"name": "credit_score",
+						"type": "INT32"
 					},
 					{
 						"name": "country",
-						"type": "String"
+						"type": "UTF8"
+					},
+					{
+						"name": "gender",
+						"type": "UTF8"
+					},
+					{
+						"name": "age",
+						"type": "INT32"
+					},
+					{
+						"name": "tenure",
+						"type": "INT64"
+					},
+					{
+						"name": "deposits",
+						"type": "INT64"
+					},
+					{
+						"name": "withdrawls",
+						"type": "INT64"
+					},
+					{
+						"name": "number_of_products",
+						"type": "INT64"
+					},
+					{
+						"name": "has_credit_card",
+						"type": "BOOLEAN"
+					},
+					{
+						"name": "avg_feedback_score",
+						"type": "DOUBLE"
+					},
+					{
+						"name": "is_active",
+						"type": "BOOLEAN"
+					},
+					{
+						"name": "exited",
+						"type": "BOOLEAN"
 					}
 				]
 			},
@@ -264,96 +276,16 @@
 					"name": "Raw"
 				},
 				"annotations": [],
-				"type": "DelimitedText",
+				"type": "Parquet",
 				"typeProperties": {
 					"location": {
 						"type": "AzureBlobFSLocation",
-						"fileName": "customer.csv",
+						"folderPath": "Parquet/customers",
 						"fileSystem": "raw"
 					},
-					"columnDelimiter": ",",
-					"escapeChar": "\\",
-					"firstRowAsHeader": true,
-					"quoteChar": "\""
+					"compressionCodec": "snappy"
 				},
-				"schema": [
-					{
-						"name": "customer_id",
-						"type": "String"
-					},
-					{
-						"name": "source_id",
-						"type": "String"
-					},
-					{
-						"name": "first_name",
-						"type": "String"
-					},
-					{
-						"name": "middle_name",
-						"type": "String"
-					},
-					{
-						"name": "last_name",
-						"type": "String"
-					},
-					{
-						"name": "dob",
-						"type": "String"
-					},
-					{
-						"name": "gender",
-						"type": "String"
-					},
-					{
-						"name": "nationality",
-						"type": "String"
-					},
-					{
-						"name": "marital_status",
-						"type": "String"
-					},
-					{
-						"name": "occupation",
-						"type": "String"
-					},
-					{
-						"name": "avg_family_size",
-						"type": "String"
-					},
-					{
-						"name": "income_level",
-						"type": "String"
-					},
-					{
-						"name": "date_onboarded",
-						"type": "String"
-					},
-					{
-						"name": "created_date",
-						"type": "String"
-					},
-					{
-						"name": "updated_date",
-						"type": "String"
-					},
-					{
-						"name": "effective_start_date",
-						"type": "String"
-					},
-					{
-						"name": "effective_end_date",
-						"type": "String"
-					},
-					{
-						"name": "Identifier_type",
-						"type": "String"
-					},
-					{
-						"name": "identifier",
-						"type": "String"
-					}
-				]
+				"schema": []
 			},
 			"dependsOn": [
 				"[concat(variables('factoryId'), '/linkedServices/wilding360datalake')]"
@@ -372,35 +304,23 @@
 					"name": "Clean"
 				},
 				"annotations": [],
-				"type": "DelimitedText",
+				"type": "Parquet",
 				"typeProperties": {
 					"location": {
 						"type": "AzureBlobFSLocation",
 						"folderPath": "customers",
 						"fileSystem": "clean"
 					},
-					"columnDelimiter": ",",
-					"escapeChar": "\\",
-					"quoteChar": "\""
+					"compressionCodec": "snappy"
 				},
-				"schema": [
-					{
-						"type": "String"
-					},
-					{
-						"type": "String"
-					},
-					{
-						"type": "String"
-					}
-				]
+				"schema": []
 			},
 			"dependsOn": [
 				"[concat(variables('factoryId'), '/linkedServices/wilding360datalake')]"
 			]
 		},
 		{
-			"name": "[concat(parameters('factoryName'), '/addressesErrors')]",
+			"name": "[concat(parameters('factoryName'), '/Customers_errors')]",
 			"type": "Microsoft.DataFactory/factories/datasets",
 			"apiVersion": "2018-06-01",
 			"properties": {
@@ -412,15 +332,40 @@
 					"name": "Errors"
 				},
 				"annotations": [],
+				"type": "Parquet",
+				"typeProperties": {
+					"location": {
+						"type": "AzureBlobFSLocation",
+						"folderPath": "customers",
+						"fileSystem": "errors"
+					},
+					"compressionCodec": "snappy"
+				},
+				"schema": []
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/linkedServices/wilding360datalake')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/ProductIDsCSVTest')]",
+			"type": "Microsoft.DataFactory/factories/datasets",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"linkedServiceName": {
+					"referenceName": "wilding360datalake",
+					"type": "LinkedServiceReference"
+				},
+				"annotations": [],
 				"type": "DelimitedText",
 				"typeProperties": {
 					"location": {
 						"type": "AzureBlobFSLocation",
-						"fileSystem": "errors"
+						"fileSystem": "auxiliary-tables"
 					},
 					"columnDelimiter": ",",
 					"escapeChar": "\\",
-					"firstRowAsHeader": false,
+					"firstRowAsHeader": true,
 					"quoteChar": "\""
 				},
 				"schema": []
@@ -442,372 +387,14 @@
 					"name": "Raw"
 				},
 				"annotations": [],
-				"type": "DelimitedText",
+				"type": "Parquet",
 				"typeProperties": {
 					"location": {
 						"type": "AzureBlobFSLocation",
-						"fileName": "products.csv",
+						"folderPath": "Parquet/products",
 						"fileSystem": "raw"
 					},
-					"columnDelimiter": ",",
-					"escapeChar": "\\",
-					"firstRowAsHeader": true,
-					"quoteChar": "\""
-				},
-				"schema": [
-					{
-						"name": "product_id",
-						"type": "String"
-					},
-					{
-						"name": "product_name",
-						"type": "String"
-					},
-					{
-						"name": "product_type",
-						"type": "String"
-					},
-					{
-						"name": "product_description",
-						"type": "String"
-					},
-					{
-						"name": "issue_date",
-						"type": "String"
-					},
-					{
-						"name": "valid_till_date",
-						"type": "String"
-					},
-					{
-						"name": "account_status",
-						"type": "String"
-					},
-					{
-						"name": "credit_card_limit",
-						"type": "String"
-					},
-					{
-						"name": "interest_rate",
-						"type": "String"
-					},
-					{
-						"name": "tenure",
-						"type": "String"
-					},
-					{
-						"name": "service_charges",
-						"type": "String"
-					},
-					{
-						"name": "customer_id",
-						"type": "String"
-					},
-					{
-						"name": "fd_principal_amount",
-						"type": "String"
-					},
-					{
-						"name": "loan_collateral_value",
-						"type": "String"
-					},
-					{
-						"name": "loan_amount",
-						"type": "String"
-					}
-				]
-			},
-			"dependsOn": [
-				"[concat(variables('factoryId'), '/linkedServices/wilding360datalake')]"
-			]
-		},
-		{
-			"name": "[concat(parameters('factoryName'), '/SRS')]",
-			"type": "Microsoft.DataFactory/factories/datasets",
-			"apiVersion": "2018-06-01",
-			"properties": {
-				"linkedServiceName": {
-					"referenceName": "wilding360datalake",
-					"type": "LinkedServiceReference"
-				},
-				"folder": {
-					"name": "Raw"
-				},
-				"annotations": [],
-				"type": "DelimitedText",
-				"typeProperties": {
-					"location": {
-						"type": "AzureBlobFSLocation",
-						"fileName": "srs.csv",
-						"fileSystem": "raw"
-					},
-					"columnDelimiter": ",",
-					"escapeChar": "\\",
-					"firstRowAsHeader": true,
-					"quoteChar": "\""
-				},
-				"schema": [
-					{
-						"name": "sr_id",
-						"type": "String"
-					},
-					{
-						"name": "customer_id",
-						"type": "String"
-					},
-					{
-						"name": "product_id",
-						"type": "String"
-					},
-					{
-						"name": "sr_description",
-						"type": "String"
-					},
-					{
-						"name": "sr_open_date",
-						"type": "String"
-					},
-					{
-						"name": "sr_close_date",
-						"type": "String"
-					},
-					{
-						"name": "sr_type",
-						"type": "String"
-					},
-					{
-						"name": "channel",
-						"type": "String"
-					},
-					{
-						"name": "sr_cust_feedback",
-						"type": "String"
-					}
-				]
-			},
-			"dependsOn": [
-				"[concat(variables('factoryId'), '/linkedServices/wilding360datalake')]"
-			]
-		},
-		{
-			"name": "[concat(parameters('factoryName'), '/Transactions')]",
-			"type": "Microsoft.DataFactory/factories/datasets",
-			"apiVersion": "2018-06-01",
-			"properties": {
-				"linkedServiceName": {
-					"referenceName": "wilding360datalake",
-					"type": "LinkedServiceReference"
-				},
-				"folder": {
-					"name": "Raw"
-				},
-				"annotations": [],
-				"type": "DelimitedText",
-				"typeProperties": {
-					"location": {
-						"type": "AzureBlobFSLocation",
-						"fileName": "transactions.csv",
-						"fileSystem": "raw"
-					},
-					"columnDelimiter": ",",
-					"escapeChar": "\\",
-					"firstRowAsHeader": true,
-					"quoteChar": "\""
-				},
-				"schema": [
-					{
-						"name": "transaction_id",
-						"type": "String"
-					},
-					{
-						"name": "customer_id",
-						"type": "String"
-					},
-					{
-						"name": "product_id",
-						"type": "String"
-					},
-					{
-						"name": "merchant_name",
-						"type": "String"
-					},
-					{
-						"name": "transaction_description",
-						"type": "String"
-					},
-					{
-						"name": "transaction_amount",
-						"type": "String"
-					},
-					{
-						"name": "type_deposit_withdrawal",
-						"type": "String"
-					},
-					{
-						"name": "transaction_date",
-						"type": "String"
-					},
-					{
-						"name": "channel",
-						"type": "String"
-					}
-				]
-			},
-			"dependsOn": [
-				"[concat(variables('factoryId'), '/linkedServices/wilding360datalake')]"
-			]
-		},
-		{
-			"name": "[concat(parameters('factoryName'), '/sink')]",
-			"type": "Microsoft.DataFactory/factories/datasets",
-			"apiVersion": "2018-06-01",
-			"properties": {
-				"linkedServiceName": {
-					"referenceName": "wilding360datalake",
-					"type": "LinkedServiceReference"
-				},
-				"annotations": [],
-				"type": "DelimitedText",
-				"typeProperties": {
-					"location": {
-						"type": "AzureBlobFSLocation",
-						"fileSystem": "raw"
-					},
-					"columnDelimiter": ",",
-					"escapeChar": "\\",
-					"quoteChar": "\""
-				},
-				"schema": [
-					{
-						"type": "String"
-					},
-					{
-						"type": "String"
-					},
-					{
-						"type": "String"
-					}
-				]
-			},
-			"dependsOn": [
-				"[concat(variables('factoryId'), '/linkedServices/wilding360datalake')]"
-			]
-		},
-		{
-			"name": "[concat(parameters('factoryName'), '/customerErrors')]",
-			"type": "Microsoft.DataFactory/factories/datasets",
-			"apiVersion": "2018-06-01",
-			"properties": {
-				"linkedServiceName": {
-					"referenceName": "wilding360datalake",
-					"type": "LinkedServiceReference"
-				},
-				"folder": {
-					"name": "Errors"
-				},
-				"annotations": [],
-				"type": "DelimitedText",
-				"typeProperties": {
-					"location": {
-						"type": "AzureBlobFSLocation",
-						"fileSystem": "errors"
-					},
-					"columnDelimiter": ",",
-					"escapeChar": "\\",
-					"firstRowAsHeader": true,
-					"quoteChar": "\""
-				},
-				"schema": []
-			},
-			"dependsOn": [
-				"[concat(variables('factoryId'), '/linkedServices/wilding360datalake')]"
-			]
-		},
-		{
-			"name": "[concat(parameters('factoryName'), '/productsErrors')]",
-			"type": "Microsoft.DataFactory/factories/datasets",
-			"apiVersion": "2018-06-01",
-			"properties": {
-				"linkedServiceName": {
-					"referenceName": "wilding360datalake",
-					"type": "LinkedServiceReference"
-				},
-				"folder": {
-					"name": "Errors"
-				},
-				"annotations": [],
-				"type": "DelimitedText",
-				"typeProperties": {
-					"location": {
-						"type": "AzureBlobFSLocation",
-						"fileSystem": "errors"
-					},
-					"columnDelimiter": ",",
-					"escapeChar": "\\",
-					"firstRowAsHeader": true,
-					"quoteChar": "\""
-				},
-				"schema": []
-			},
-			"dependsOn": [
-				"[concat(variables('factoryId'), '/linkedServices/wilding360datalake')]"
-			]
-		},
-		{
-			"name": "[concat(parameters('factoryName'), '/Srs_clean')]",
-			"type": "Microsoft.DataFactory/factories/datasets",
-			"apiVersion": "2018-06-01",
-			"properties": {
-				"linkedServiceName": {
-					"referenceName": "wilding360datalake",
-					"type": "LinkedServiceReference"
-				},
-				"folder": {
-					"name": "Clean"
-				},
-				"annotations": [],
-				"type": "DelimitedText",
-				"typeProperties": {
-					"location": {
-						"type": "AzureBlobFSLocation",
-						"folderPath": "srs",
-						"fileSystem": "clean"
-					},
-					"columnDelimiter": ",",
-					"escapeChar": "\\",
-					"firstRowAsHeader": true,
-					"quoteChar": "\""
-				},
-				"schema": []
-			},
-			"dependsOn": [
-				"[concat(variables('factoryId'), '/linkedServices/wilding360datalake')]"
-			]
-		},
-		{
-			"name": "[concat(parameters('factoryName'), '/Transactions_clean')]",
-			"type": "Microsoft.DataFactory/factories/datasets",
-			"apiVersion": "2018-06-01",
-			"properties": {
-				"linkedServiceName": {
-					"referenceName": "wilding360datalake",
-					"type": "LinkedServiceReference"
-				},
-				"folder": {
-					"name": "Clean"
-				},
-				"annotations": [],
-				"type": "DelimitedText",
-				"typeProperties": {
-					"location": {
-						"type": "AzureBlobFSLocation",
-						"folderPath": "transactions",
-						"fileSystem": "clean"
-					},
-					"columnDelimiter": ",",
-					"escapeChar": "\\",
-					"firstRowAsHeader": true,
-					"quoteChar": "\""
+					"compressionCodec": "snappy"
 				},
 				"schema": []
 			},
@@ -828,17 +415,14 @@
 					"name": "Clean"
 				},
 				"annotations": [],
-				"type": "DelimitedText",
+				"type": "Parquet",
 				"typeProperties": {
 					"location": {
 						"type": "AzureBlobFSLocation",
 						"folderPath": "products",
 						"fileSystem": "clean"
 					},
-					"columnDelimiter": ",",
-					"escapeChar": "\\",
-					"firstRowAsHeader": true,
-					"quoteChar": "\""
+					"compressionCodec": "snappy"
 				},
 				"schema": []
 			},
@@ -847,7 +431,7 @@
 			]
 		},
 		{
-			"name": "[concat(parameters('factoryName'), '/srsErrors')]",
+			"name": "[concat(parameters('factoryName'), '/Products_errors')]",
 			"type": "Microsoft.DataFactory/factories/datasets",
 			"apiVersion": "2018-06-01",
 			"properties": {
@@ -859,16 +443,14 @@
 					"name": "Errors"
 				},
 				"annotations": [],
-				"type": "DelimitedText",
+				"type": "Parquet",
 				"typeProperties": {
 					"location": {
 						"type": "AzureBlobFSLocation",
+						"folderPath": "products",
 						"fileSystem": "errors"
 					},
-					"columnDelimiter": ",",
-					"escapeChar": "\\",
-					"firstRowAsHeader": true,
-					"quoteChar": "\""
+					"compressionCodec": "snappy"
 				},
 				"schema": []
 			},
@@ -877,7 +459,108 @@
 			]
 		},
 		{
-			"name": "[concat(parameters('factoryName'), '/transactionErrors')]",
+			"name": "[concat(parameters('factoryName'), '/SRS')]",
+			"type": "Microsoft.DataFactory/factories/datasets",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"linkedServiceName": {
+					"referenceName": "wilding360datalake",
+					"type": "LinkedServiceReference"
+				},
+				"folder": {
+					"name": "Raw"
+				},
+				"annotations": [],
+				"type": "Parquet",
+				"typeProperties": {
+					"location": {
+						"type": "AzureBlobFSLocation",
+						"folderPath": "Parquet/srs",
+						"fileSystem": "raw"
+					},
+					"compressionCodec": "snappy"
+				},
+				"schema": []
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/linkedServices/wilding360datalake')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/Srs_clean')]",
+			"type": "Microsoft.DataFactory/factories/datasets",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"linkedServiceName": {
+					"referenceName": "wilding360datalake",
+					"type": "LinkedServiceReference"
+				},
+				"folder": {
+					"name": "Clean"
+				},
+				"annotations": [],
+				"type": "Parquet",
+				"typeProperties": {
+					"location": {
+						"type": "AzureBlobFSLocation",
+						"folderPath": "srs",
+						"fileSystem": "clean"
+					},
+					"compressionCodec": "snappy"
+				},
+				"schema": [
+					{
+						"name": "sr_id",
+						"type": "INT64"
+					},
+					{
+						"name": "customer_id",
+						"type": "INT64"
+					},
+					{
+						"name": "product_id",
+						"type": "INT64"
+					},
+					{
+						"name": "sr_description",
+						"type": "UTF8"
+					},
+					{
+						"name": "sr_open_date",
+						"type": "INT96"
+					},
+					{
+						"name": "sr_close_date",
+						"type": "INT96"
+					},
+					{
+						"name": "sr_type",
+						"type": "UTF8"
+					},
+					{
+						"name": "channel",
+						"type": "UTF8"
+					},
+					{
+						"name": "sr_cust_feedback",
+						"type": "UTF8"
+					},
+					{
+						"name": "feedback_type",
+						"type": "UTF8"
+					},
+					{
+						"name": "feedback_severity",
+						"type": "UTF8"
+					}
+				]
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/linkedServices/wilding360datalake')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/Srs_errors')]",
 			"type": "Microsoft.DataFactory/factories/datasets",
 			"apiVersion": "2018-06-01",
 			"properties": {
@@ -889,16 +572,70 @@
 					"name": "Errors"
 				},
 				"annotations": [],
-				"type": "DelimitedText",
+				"type": "Parquet",
 				"typeProperties": {
 					"location": {
 						"type": "AzureBlobFSLocation",
+						"folderPath": "srs",
 						"fileSystem": "errors"
 					},
-					"columnDelimiter": ",",
-					"escapeChar": "\\",
-					"firstRowAsHeader": true,
-					"quoteChar": "\""
+					"compressionCodec": "snappy"
+				},
+				"schema": []
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/linkedServices/wilding360datalake')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/Transactions')]",
+			"type": "Microsoft.DataFactory/factories/datasets",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"linkedServiceName": {
+					"referenceName": "wilding360datalake",
+					"type": "LinkedServiceReference"
+				},
+				"folder": {
+					"name": "Raw"
+				},
+				"annotations": [],
+				"type": "Parquet",
+				"typeProperties": {
+					"location": {
+						"type": "AzureBlobFSLocation",
+						"folderPath": "Parquet/transactions",
+						"fileSystem": "raw"
+					},
+					"compressionCodec": "snappy"
+				},
+				"schema": []
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/linkedServices/wilding360datalake')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/Transactions_clean')]",
+			"type": "Microsoft.DataFactory/factories/datasets",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"linkedServiceName": {
+					"referenceName": "wilding360datalake",
+					"type": "LinkedServiceReference"
+				},
+				"folder": {
+					"name": "Clean"
+				},
+				"annotations": [],
+				"type": "Parquet",
+				"typeProperties": {
+					"location": {
+						"type": "AzureBlobFSLocation",
+						"folderPath": "transactions",
+						"fileSystem": "clean"
+					},
+					"compressionCodec": "snappy"
 				},
 				"schema": []
 			},
