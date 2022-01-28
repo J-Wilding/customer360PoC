@@ -3,31 +3,11 @@
 	"properties": {
 		"activities": [
 			{
-				"name": "ETL",
-				"type": "ExecutePipeline",
-				"dependsOn": [
-					{
-						"activity": "cpCSVtoParquet",
-						"dependencyConditions": [
-							"Succeeded"
-						]
-					}
-				],
-				"userProperties": [],
-				"typeProperties": {
-					"pipeline": {
-						"referenceName": "ETL",
-						"type": "PipelineReference"
-					},
-					"waitOnCompletion": true
-				}
-			},
-			{
 				"name": "generateChurn",
 				"type": "ExecuteDataFlow",
 				"dependsOn": [
 					{
-						"activity": "ETL",
+						"activity": "ETL1",
 						"dependencyConditions": [
 							"Succeeded"
 						]
@@ -61,6 +41,80 @@
 				"typeProperties": {
 					"pipeline": {
 						"referenceName": "cpCSVtoParquet",
+						"type": "PipelineReference"
+					},
+					"waitOnCompletion": true
+				}
+			},
+			{
+				"name": "UpdateDashboard",
+				"type": "DatabricksNotebook",
+				"dependsOn": [
+					{
+						"activity": "generateChurn",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "7.00:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"notebookPath": "/Users/jonathan.wilding@hcl.com/Customer360PoC/churn_prediction"
+				},
+				"linkedServiceName": {
+					"referenceName": "AzureDatabricks1",
+					"type": "LinkedServiceReference"
+				}
+			},
+			{
+				"name": "ChurnPrediction",
+				"type": "DatabricksNotebook",
+				"dependsOn": [
+					{
+						"activity": "generateChurn",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "7.00:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"notebookPath": "/Users/jonathan.wilding@hcl.com/Customer360PoC/churn_prediction"
+				},
+				"linkedServiceName": {
+					"referenceName": "AzureDatabricks1",
+					"type": "LinkedServiceReference"
+				}
+			},
+			{
+				"name": "ETL1",
+				"type": "ExecutePipeline",
+				"dependsOn": [
+					{
+						"activity": "cpCSVtoParquet",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"userProperties": [],
+				"typeProperties": {
+					"pipeline": {
+						"referenceName": "ETL",
 						"type": "PipelineReference"
 					},
 					"waitOnCompletion": true
