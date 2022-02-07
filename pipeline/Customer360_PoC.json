@@ -7,7 +7,7 @@
 				"type": "ExecuteDataFlow",
 				"dependsOn": [
 					{
-						"activity": "ETL1",
+						"activity": "ETL",
 						"dependencyConditions": [
 							"Succeeded"
 						]
@@ -31,19 +31,6 @@
 						"computeType": "General"
 					},
 					"traceLevel": "Fine"
-				}
-			},
-			{
-				"name": "cpCSVtoParquet",
-				"type": "ExecutePipeline",
-				"dependsOn": [],
-				"userProperties": [],
-				"typeProperties": {
-					"pipeline": {
-						"referenceName": "cpCSVtoParquet",
-						"type": "PipelineReference"
-					},
-					"waitOnCompletion": true
 				}
 			},
 			{
@@ -101,16 +88,10 @@
 				}
 			},
 			{
-				"name": "ETL1",
+				"name": "ETL",
+				"description": "During the PoC I had a prep step converting CSV to parquet which I realized after the fact is inefficient since it loads to memory twice. Though since the data is now in parquet format it is more efficient to read this rather than use the CSV. In the production pipeline, I would revert to using the CSV rather than the parquet since all subsequent data would be ingested via CSV.",
 				"type": "ExecutePipeline",
-				"dependsOn": [
-					{
-						"activity": "cpCSVtoParquet",
-						"dependencyConditions": [
-							"Succeeded"
-						]
-					}
-				],
+				"dependsOn": [],
 				"userProperties": [],
 				"typeProperties": {
 					"pipeline": {
