@@ -114,7 +114,7 @@
 							"name": "Join4"
 						}
 					],
-					"script": "source(output(\n\t\tcustomer_id as long,\n\t\tsource_id as string,\n\t\tfirst_name as string,\n\t\tmiddle_name as string,\n\t\tlast_name as string,\n\t\tdob as timestamp,\n\t\tgender as string,\n\t\tnationality as string,\n\t\tmarital_status as string,\n\t\toccupation as string,\n\t\tavg_family_size as integer,\n\t\tincome_level as string,\n\t\tdate_onboarded as timestamp,\n\t\tcreated_date as timestamp,\n\t\tupdated_date as timestamp,\n\t\teffective_start_date as timestamp,\n\t\teffective_end_date as timestamp,\n\t\tIdentifier_type as string,\n\t\tidentifier as string\n\t),\n\tallowSchemaDrift: false,\n\tvalidateSchema: false,\n\tignoreNoFilesFound: false,\n\tformat: 'parquet') ~> Customers\nsource(output(\n\t\taddress_id as long,\n\t\taddress_type as string,\n\t\taddress1 as string,\n\t\taddress2 as string,\n\t\taddress3 as string,\n\t\tcity as string,\n\t\tstate as string,\n\t\tcountry as string,\n\t\tzipcode as string,\n\t\tphone as string,\n\t\temail as string,\n\t\tFax as string,\n\t\tcustomer_id as long\n\t),\n\tallowSchemaDrift: false,\n\tvalidateSchema: false,\n\tignoreNoFilesFound: false,\n\tformat: 'parquet') ~> Addresses\nsource(output(\n\t\tCity as string,\n\t\tState as string,\n\t\tCountry as string\n\t),\n\tallowSchemaDrift: false,\n\tvalidateSchema: false,\n\tignoreNoFilesFound: false,\n\tformat: 'parquet') ~> cityStateCountry\nsource(output(\n\t\tproduct_id as long,\n\t\tproduct_name as string,\n\t\tproduct_type as string,\n\t\tproduct_description as string,\n\t\tissue_date as string,\n\t\tvalid_till_date as string,\n\t\taccount_status as string,\n\t\tcredit_card_limit as long,\n\t\tinterest_rate as double,\n\t\ttenure as long,\n\t\tservice_charges as long,\n\t\tcustomer_id as long,\n\t\tfd_principal_amount as long,\n\t\tloan_collateral_value as long,\n\t\tloan_amount as long\n\t),\n\tallowSchemaDrift: false,\n\tvalidateSchema: false,\n\tignoreNoFilesFound: false,\n\tformat: 'parquet') ~> Products\nsource(output(\n\t\tsr_id as long,\n\t\tcustomer_id as long,\n\t\tproduct_id as long,\n\t\tsr_description as string,\n\t\tsr_open_date as timestamp,\n\t\tsr_close_date as timestamp,\n\t\tsr_type as string,\n\t\tchannel as string,\n\t\tsr_cust_feedback as string,\n\t\tfeedback_type as string,\n\t\tfeedback_severity as string\n\t),\n\tallowSchemaDrift: false,\n\tvalidateSchema: false,\n\tignoreNoFilesFound: false,\n\tformat: 'parquet') ~> SRS\nsource(output(\n\t\ttransaction_id as long,\n\t\tcustomer_id as long,\n\t\tproduct_id as long,\n\t\tmerchant_name as string,\n\t\ttransaction_description as string,\n\t\ttransaction_amount as long,\n\t\ttype_deposit_withdrawal as string,\n\t\ttransaction_date as timestamp,\n\t\tchannel as string\n\t),\n\tallowSchemaDrift: false,\n\tvalidateSchema: false,\n\tignoreNoFilesFound: false,\n\tformat: 'parquet') ~> Transactions\ncustomers1, customerCountries join(customers1@customer_id == customerCountries@customer_id,\n\tjoinType:'inner',\n\tbroadcast: 'auto')~> Join1\nJoin1 select(mapColumn(\n\t\tcustomer_id = customers1@customer_id,\n\t\tcountry,\n\t\tage = dob,\n\t\tgender\n\t),\n\tskipDuplicateMapInputs: true,\n\tskipDuplicateMapOutputs: true) ~> customerIDCountry\nJoin2 derive(credit_score = toInteger(random(1)*215 + 600),\n\t\tage = toInteger(monthsBetween(currentTimestamp(), age) / 12),\n\t\thas_credit_card = iif(has_credit_card > 0, true(), false())) ~> DerivedColumn1\nCustomers aggregate(groupBy(customer_id,\n\t\tdob,\n\t\tgender),\n\tcount = count()) ~> customers1\nExists1 aggregate(groupBy(customer_id,\n\t\tcountry),\n\tcount = count()) ~> customerCountries\nAddresses, cityStateCountry exists(Addresses@country == cityStateCountry@Country,\n\tnegate:false,\n\tbroadcast: 'auto')~> Exists1\ncustomerIDCountry, ProductInfo join(customerIDCountry@customer_id == ProductInfo@customer_id,\n\tjoinType:'inner',\n\tbroadcast: 'auto')~> Join2\nProducts aggregate(groupBy(customer_id),\n\ttenure = sum(tenure),\n\t\tnumber_of_products = count(),\n\t\thas_credit_card = countIf(product_type == \"CREDIT CARD\" && account_status == \"open\", customer_id),\n\t\tis_active = iif(countIf(account_status == \"closed\") == count(), false(), true()),\n\t\texited = !iif(countIf(account_status == \"closed\") == count(), false(), true())) ~> ProductInfo\nJoin4 select(mapColumn(\n\t\tcustomer_id = customerIDCountry@customer_id,\n\t\tcredit_score,\n\t\tcountry,\n\t\tgender,\n\t\tage,\n\t\ttenure,\n\t\tdeposits,\n\t\twithdrawls,\n\t\tnumber_of_products,\n\t\thas_credit_card,\n\t\tavg_feedback_score,\n\t\tis_active,\n\t\texited\n\t),\n\tskipDuplicateMapInputs: true,\n\tskipDuplicateMapOutputs: true) ~> RemoveColumns1\nSRS aggregate(groupBy(customer_id),\n\tavg_feedback_score = countIf(feedback_type == \"Positive\") / iif(countIf(feedback_type == \"Negative\") == 0, 1l, countIf(feedback_type == \"Negative\")),\n\t\tpositive = countIf(feedback_type == \"Positive\"),\n\t\tnegative = countIf(feedback_type == \"Negative\")) ~> avgFeedbackScore\nTransactions aggregate(groupBy(customer_id),\n\tdeposits = iifNull(sumIf(type_deposit_withdrawal == \"D\", transaction_amount), 0),\n\t\twithdrawls = iifNull(sumIf(type_deposit_withdrawal == \"W\", transaction_amount), 0)) ~> depositsWithdrawls\navgFeedbackScore, depositsWithdrawls join(avgFeedbackScore@customer_id == depositsWithdrawls@customer_id,\n\tjoinType:'inner',\n\tbroadcast: 'auto')~> Join3\nDerivedColumn1, Join3 join(customerIDCountry@customer_id == avgFeedbackScore@customer_id,\n\tjoinType:'inner',\n\tbroadcast: 'auto')~> Join4\nRemoveColumns1 sink(allowSchemaDrift: true,\n\tvalidateSchema: false,\n\tinput(\n\t\tcustomer_id as long,\n\t\tcredit_score as integer,\n\t\tcountry as string,\n\t\tgender as string,\n\t\tage as integer,\n\t\ttenure as long,\n\t\tdeposits as long,\n\t\twithdrawls as long,\n\t\tnumber_of_products as long,\n\t\thas_credit_card as boolean,\n\t\tavg_feedback_score as double,\n\t\tis_active as boolean,\n\t\texited as boolean\n\t),\n\tformat: 'parquet',\n\ttruncate: true,\n\tumask: 0022,\n\tpreCommands: [],\n\tpostCommands: [],\n\tskipDuplicateMapInputs: true,\n\tskipDuplicateMapOutputs: true,\n\tsaveOrder: 1) ~> Churn"
+					"script": "source(output(\n\t\tcustomer_id as long,\n\t\tsource_id as string,\n\t\tfirst_name as string,\n\t\tmiddle_name as string,\n\t\tlast_name as string,\n\t\tdob as timestamp,\n\t\tgender as string,\n\t\tnationality as string,\n\t\tmarital_status as string,\n\t\toccupation as string,\n\t\tavg_family_size as integer,\n\t\tincome_level as string,\n\t\tdate_onboarded as timestamp,\n\t\tcreated_date as timestamp,\n\t\tupdated_date as timestamp,\n\t\teffective_start_date as timestamp,\n\t\teffective_end_date as timestamp,\n\t\tIdentifier_type as string,\n\t\tidentifier as string\n\t),\n\tallowSchemaDrift: false,\n\tvalidateSchema: false,\n\tignoreNoFilesFound: false,\n\tformat: 'parquet') ~> Customers\nsource(output(\n\t\taddress_id as long,\n\t\taddress_type as string,\n\t\taddress1 as string,\n\t\taddress2 as string,\n\t\taddress3 as string,\n\t\tcity as string,\n\t\tstate as string,\n\t\tcountry as string,\n\t\tzipcode as string,\n\t\tphone as string,\n\t\temail as string,\n\t\tFax as string,\n\t\tcustomer_id as long\n\t),\n\tallowSchemaDrift: false,\n\tvalidateSchema: false,\n\tignoreNoFilesFound: false,\n\tformat: 'parquet') ~> Addresses\nsource(output(\n\t\tCity as string,\n\t\tState as string,\n\t\tCountry as string\n\t),\n\tallowSchemaDrift: false,\n\tvalidateSchema: false,\n\tignoreNoFilesFound: false,\n\tformat: 'parquet') ~> cityStateCountry\nsource(output(\n\t\tproduct_id as long,\n\t\tproduct_name as string,\n\t\tproduct_type as string,\n\t\tproduct_description as string,\n\t\tissue_date as string,\n\t\tvalid_till_date as string,\n\t\taccount_status as string,\n\t\tcredit_card_limit as long,\n\t\tinterest_rate as double,\n\t\ttenure as long,\n\t\tservice_charges as long,\n\t\tcustomer_id as long,\n\t\tfd_principal_amount as long,\n\t\tloan_collateral_value as long,\n\t\tloan_amount as long\n\t),\n\tallowSchemaDrift: false,\n\tvalidateSchema: false,\n\tignoreNoFilesFound: false,\n\tformat: 'parquet') ~> Products\nsource(output(\n\t\tsr_id as long,\n\t\tcustomer_id as long,\n\t\tproduct_id as long,\n\t\tsr_description as string,\n\t\tsr_open_date as timestamp,\n\t\tsr_close_date as timestamp,\n\t\tsr_type as string,\n\t\tchannel as string,\n\t\tsr_cust_feedback as string,\n\t\tfeedback_type as string,\n\t\tfeedback_severity as string\n\t),\n\tallowSchemaDrift: false,\n\tvalidateSchema: false,\n\tignoreNoFilesFound: false,\n\tformat: 'parquet') ~> SRS\nsource(output(\n\t\ttransaction_id as long,\n\t\tcustomer_id as long,\n\t\tproduct_id as long,\n\t\tmerchant_name as string,\n\t\ttransaction_description as string,\n\t\ttransaction_amount as long,\n\t\ttype_deposit_withdrawal as string,\n\t\ttransaction_date as timestamp,\n\t\tchannel as string\n\t),\n\tallowSchemaDrift: false,\n\tvalidateSchema: false,\n\tignoreNoFilesFound: false,\n\tformat: 'parquet') ~> Transactions\ncustomers1, customerCountries join(customers1@customer_id == customerCountries@customer_id,\n\tjoinType:'inner',\n\tbroadcast: 'auto')~> Join1\nJoin1 select(mapColumn(\n\t\tcustomer_id = customers1@customer_id,\n\t\tcountry,\n\t\tage = dob,\n\t\tgender\n\t),\n\tskipDuplicateMapInputs: true,\n\tskipDuplicateMapOutputs: true) ~> customerIDCountry\nJoin2 derive(credit_score = toInteger(random(1)*215 + 600),\n\t\tage = toInteger(monthsBetween(currentTimestamp(), age) / 12),\n\t\thas_credit_card = iif(has_credit_card > 0, true(), false())) ~> DerivedColumn1\nCustomers aggregate(groupBy(customer_id,\n\t\tdob,\n\t\tgender),\n\tcount = count()) ~> customers1\nExists1 aggregate(groupBy(customer_id,\n\t\tcountry,\n\t\tstate),\n\tcount = count()) ~> customerCountries\nAddresses, cityStateCountry exists(Addresses@country == cityStateCountry@Country,\n\tnegate:false,\n\tbroadcast: 'auto')~> Exists1\ncustomerIDCountry, ProductInfo join(customerIDCountry@customer_id == ProductInfo@customer_id,\n\tjoinType:'inner',\n\tbroadcast: 'auto')~> Join2\nProducts aggregate(groupBy(customer_id),\n\ttenure = sum(tenure),\n\t\tnumber_of_products = count(),\n\t\thas_credit_card = countIf(product_type == \"CREDIT CARD\" && account_status == \"open\", customer_id),\n\t\tis_active = iif(countIf(account_status == \"closed\") == count(), false(), true()),\n\t\texited = !iif(countIf(account_status == \"closed\") == count(), false(), true())) ~> ProductInfo\nJoin4 select(mapColumn(\n\t\tcustomer_id = customerIDCountry@customer_id,\n\t\tcredit_score,\n\t\tcountry,\n\t\tgender,\n\t\tage,\n\t\ttenure,\n\t\tdeposits,\n\t\twithdrawls,\n\t\tnumber_of_products,\n\t\thas_credit_card,\n\t\tavg_feedback_score,\n\t\tis_active,\n\t\texited\n\t),\n\tskipDuplicateMapInputs: true,\n\tskipDuplicateMapOutputs: true) ~> RemoveColumns1\nSRS aggregate(groupBy(customer_id),\n\tavg_feedback_score = countIf(feedback_type == \"Positive\") / iif(countIf(feedback_type == \"Negative\") == 0, 1l, countIf(feedback_type == \"Negative\")),\n\t\tpositive = countIf(feedback_type == \"Positive\"),\n\t\tnegative = countIf(feedback_type == \"Negative\")) ~> avgFeedbackScore\nTransactions aggregate(groupBy(customer_id),\n\tdeposits = iifNull(sumIf(type_deposit_withdrawal == \"D\", transaction_amount), 0),\n\t\twithdrawls = iifNull(sumIf(type_deposit_withdrawal == \"W\", transaction_amount), 0)) ~> depositsWithdrawls\navgFeedbackScore, depositsWithdrawls join(avgFeedbackScore@customer_id == depositsWithdrawls@customer_id,\n\tjoinType:'inner',\n\tbroadcast: 'auto')~> Join3\nDerivedColumn1, Join3 join(customerIDCountry@customer_id == avgFeedbackScore@customer_id,\n\tjoinType:'inner',\n\tbroadcast: 'auto')~> Join4\nRemoveColumns1 sink(allowSchemaDrift: true,\n\tvalidateSchema: false,\n\tinput(\n\t\tcustomer_id as long,\n\t\tcredit_score as integer,\n\t\tcountry as string,\n\t\tgender as string,\n\t\tage as integer,\n\t\ttenure as long,\n\t\tdeposits as long,\n\t\twithdrawls as long,\n\t\tnumber_of_products as long,\n\t\thas_credit_card as boolean,\n\t\tavg_feedback_score as double,\n\t\tis_active as boolean,\n\t\texited as boolean\n\t),\n\tformat: 'parquet',\n\ttruncate: true,\n\tumask: 0022,\n\tpreCommands: [],\n\tpostCommands: [],\n\tskipDuplicateMapInputs: true,\n\tskipDuplicateMapOutputs: true,\n\tsaveOrder: 1) ~> Churn"
 				}
 			},
 			"dependsOn": []
@@ -249,7 +249,7 @@
 							"name": "Products1"
 						}
 					],
-					"script": "source(output(\n\t\tcustomer_id as long\n\t),\n\tallowSchemaDrift: true,\n\tvalidateSchema: false,\n\tignoreNoFilesFound: false,\n\tformat: 'parquet',\n\tdateFormats: ['MM/dd/yyyy'],\n\ttimestampFormats: ['MM/dd/yyyy HH:mm:ss']) ~> Customers\nsource(output(\n\t\tproduct_id as long,\n\t\tproduct_name as string,\n\t\tproduct_type as string,\n\t\tproduct_description as string,\n\t\tissue_date as timestamp,\n\t\tvalid_till_date as timestamp,\n\t\taccount_status as string,\n\t\tcredit_card_limit as long,\n\t\tinterest_rate as double,\n\t\ttenure as long,\n\t\tservice_charges as long,\n\t\tcustomer_id as long,\n\t\tfd_principal_amount as long,\n\t\tloan_collateral_value as long,\n\t\tloan_amount as long\n\t),\n\tallowSchemaDrift: true,\n\tvalidateSchema: false,\n\tignoreNoFilesFound: false,\n\tformat: 'parquet',\n\tdateFormats: ['yyyy/MM/dd']) ~> Products\nsource(output(\n\t\tproduct_name as string,\n\t\tproduct_type as string,\n\t\tproduct_description as string,\n\t\tcount as long\n\t),\n\tallowSchemaDrift: true,\n\tvalidateSchema: false,\n\tignoreNoFilesFound: false,\n\tformat: 'parquet') ~> ProductNameTypeDescList\nProducts1 assert(expectTrue(valid_till_date >= issue_date, false, 'validAfterIssueDate'),\n\texpectTrue(lower(account_status) == \"open\" || lower(account_status) == \"closed\", false, 'accountStatusOpenClosed'),\n\texpectTrue(!isNull(product_id) && isInteger(toString(product_id)), false, 'productIDNotNull')) ~> Assert1\nAssert1 derive(product_name = initCap(product_name),\n\t\tproduct_type = upper(product_type),\n\t\tproduct_description = upper(product_description),\n\t\tissue_date = toString(toDate(issue_date), \"MMM-dd-yyyy\"),\n\t\tvalid_till_date = toString(toDate(valid_till_date), \"MMM-dd-yyyy\")) ~> DerivedColumn1\nDerivedColumn1 filter(isError()) ~> Filter1\nDerivedColumn1, Customers exists(Products@customer_id == Customers@customer_id,\n\tnegate:true,\n\tbroadcast: 'auto')~> CustomerIDExists\nFilter1, CustomerIDExists, NameTypeDescExists union(byName: true)~> Union1\nDerivedColumn1, ProductNameTypeDescList exists(DerivedColumn1@product_name == ProductNameTypeDescList@product_name\n\t&& DerivedColumn1@product_type == ProductNameTypeDescList@product_type\n\t&& DerivedColumn1@product_description == ProductNameTypeDescList@product_description,\n\tnegate:true,\n\tbroadcast: 'auto')~> NameTypeDescExists\nProducts derive(valid_till_date = iif(isNull(tenure), addMonths(issue_date, 36), addMonths(issue_date, tenure))) ~> Products1\nDerivedColumn1 sink(allowSchemaDrift: true,\n\tvalidateSchema: false,\n\tformat: 'parquet',\n\ttruncate: true,\n\tumask: 0022,\n\tpreCommands: [],\n\tpostCommands: [],\n\tskipDuplicateMapInputs: true,\n\tskipDuplicateMapOutputs: true) ~> ProductsClean\nUnion1 sink(allowSchemaDrift: true,\n\tvalidateSchema: true,\n\tformat: 'parquet',\n\ttruncate: true,\n\tumask: 0022,\n\tpreCommands: [],\n\tpostCommands: [],\n\tskipDuplicateMapInputs: true,\n\tskipDuplicateMapOutputs: true) ~> productsErrors"
+					"script": "source(output(\n\t\tcustomer_id as long\n\t),\n\tallowSchemaDrift: true,\n\tvalidateSchema: false,\n\tignoreNoFilesFound: false,\n\tformat: 'parquet',\n\tdateFormats: ['MM/dd/yyyy'],\n\ttimestampFormats: ['MM/dd/yyyy HH:mm:ss']) ~> Customers\nsource(output(\n\t\tproduct_id as long,\n\t\tproduct_name as string,\n\t\tproduct_type as string,\n\t\tproduct_description as string,\n\t\tissue_date as timestamp,\n\t\tvalid_till_date as timestamp,\n\t\taccount_status as string,\n\t\tcredit_card_limit as long,\n\t\tinterest_rate as double,\n\t\ttenure as long,\n\t\tservice_charges as long,\n\t\tcustomer_id as long,\n\t\tfd_principal_amount as long,\n\t\tloan_collateral_value as long,\n\t\tloan_amount as long\n\t),\n\tallowSchemaDrift: true,\n\tvalidateSchema: false,\n\tignoreNoFilesFound: false,\n\tformat: 'parquet',\n\tdateFormats: ['yyyy/MM/dd']) ~> Products\nsource(output(\n\t\tproduct_name as string,\n\t\tproduct_type as string,\n\t\tproduct_description as string,\n\t\tcount as long\n\t),\n\tallowSchemaDrift: true,\n\tvalidateSchema: false,\n\tignoreNoFilesFound: false,\n\tformat: 'parquet') ~> ProductNameTypeDescList\nProducts1 assert(expectTrue(valid_till_date >= issue_date, false, 'validAfterIssueDate'),\n\texpectTrue(lower(account_status) == \"open\" || lower(account_status) == \"closed\", false, 'accountStatusOpenClosed'),\n\texpectTrue(!isNull(product_id) && isInteger(toString(product_id)), false, 'productIDNotNull')) ~> Assert1\nAssert1 derive(product_name = initCap(product_name),\n\t\tproduct_type = upper(product_type),\n\t\tproduct_description = upper(product_description),\n\t\tissue_date = toString(toDate(issue_date), \"MMM-dd-yyyy\"),\n\t\tvalid_till_date = toString(toDate(valid_till_date), \"MMM-dd-yyyy\")) ~> DerivedColumn1\nDerivedColumn1 filter(isError()) ~> Filter1\nDerivedColumn1, Customers exists(Products@customer_id == Customers@customer_id,\n\tnegate:true,\n\tbroadcast: 'auto')~> CustomerIDExists\nFilter1, CustomerIDExists, NameTypeDescExists union(byName: true)~> Union1\nDerivedColumn1, ProductNameTypeDescList exists(DerivedColumn1@product_name == ProductNameTypeDescList@product_name\n\t&& DerivedColumn1@product_type == ProductNameTypeDescList@product_type\n\t&& DerivedColumn1@product_description == ProductNameTypeDescList@product_description,\n\tnegate:true,\n\tbroadcast: 'auto')~> NameTypeDescExists\nProducts derive(valid_till_date = iif(isNull(tenure), addMonths(issue_date, 36), addMonths(issue_date, tenure)),\n\t\ttenure = iif(isNull(tenure), 36l, tenure)) ~> Products1\nDerivedColumn1 sink(allowSchemaDrift: true,\n\tvalidateSchema: false,\n\tformat: 'parquet',\n\ttruncate: true,\n\tumask: 0022,\n\tpreCommands: [],\n\tpostCommands: [],\n\tskipDuplicateMapInputs: true,\n\tskipDuplicateMapOutputs: true) ~> ProductsClean\nUnion1 sink(allowSchemaDrift: true,\n\tvalidateSchema: true,\n\tformat: 'parquet',\n\ttruncate: true,\n\tumask: 0022,\n\tpreCommands: [],\n\tpostCommands: [],\n\tskipDuplicateMapInputs: true,\n\tskipDuplicateMapOutputs: true) ~> productsErrors"
 				}
 			},
 			"dependsOn": []
@@ -916,7 +916,14 @@
 					{
 						"name": "generateChurn",
 						"type": "ExecuteDataFlow",
-						"dependsOn": [],
+						"dependsOn": [
+							{
+								"activity": "productsETL",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
 						"policy": {
 							"timeout": "1.00:00:00",
 							"retry": 0,
@@ -947,6 +954,39 @@
 							},
 							"traceLevel": "Fine"
 						}
+					},
+					{
+						"name": "productsETL",
+						"type": "ExecuteDataFlow",
+						"dependsOn": [],
+						"policy": {
+							"timeout": "1.00:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"dataflow": {
+								"referenceName": "productsETL",
+								"type": "DataFlowReference",
+								"parameters": {},
+								"datasetParameters": {
+									"Customers": {},
+									"Products": {},
+									"ProductNameTypeDescList": {},
+									"ProductsClean": {},
+									"productsErrors": {}
+								}
+							},
+							"staging": {},
+							"compute": {
+								"coreCount": 8,
+								"computeType": "General"
+							},
+							"traceLevel": "Fine"
+						}
 					}
 				],
 				"policy": {
@@ -956,7 +996,8 @@
 				"annotations": []
 			},
 			"dependsOn": [
-				"[concat(variables('factoryId'), '/dataflows/generateChurn')]"
+				"[concat(variables('factoryId'), '/dataflows/generateChurn')]",
+				"[concat(variables('factoryId'), '/dataflows/productsETL')]"
 			]
 		},
 		{
@@ -967,6 +1008,7 @@
 				"activities": [
 					{
 						"name": "generateChurn",
+						"description": "Gold Tier",
 						"type": "ExecuteDataFlow",
 						"dependsOn": [
 							{
@@ -1063,13 +1105,35 @@
 					},
 					{
 						"name": "ETL",
-						"description": "During the PoC I had a prep step converting CSV to parquet which I realized after the fact is inefficient since it loads to memory twice. Though since the data is now in parquet format it is more efficient to read this rather than use the CSV. In the production pipeline, I would revert to using the CSV rather than the parquet since all subsequent data would be ingested via CSV.",
+						"description": "Silver Tier",
+						"type": "ExecutePipeline",
+						"dependsOn": [
+							{
+								"activity": "cpCSVtoParquet",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"userProperties": [],
+						"typeProperties": {
+							"pipeline": {
+								"referenceName": "ETL",
+								"type": "PipelineReference"
+							},
+							"waitOnCompletion": true,
+							"parameters": {}
+						}
+					},
+					{
+						"name": "cpCSVtoParquet",
+						"description": "Bronze Tier",
 						"type": "ExecutePipeline",
 						"dependsOn": [],
 						"userProperties": [],
 						"typeProperties": {
 							"pipeline": {
-								"referenceName": "ETL",
+								"referenceName": "cpCSVtoParquet",
 								"type": "PipelineReference"
 							},
 							"waitOnCompletion": true,
